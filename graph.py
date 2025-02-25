@@ -99,5 +99,5 @@ class Graph:
         res = ""
         for node in self._graph:
             for adj_idx, edge in node:
-                res += f"from {node.idx} to {adj_idx}: {round(edge.cars, 3)}\n"
+                res += f"{node.idx} --> {adj_idx}: {round(edge.workload * 100, 3)}%\n"
         return res
