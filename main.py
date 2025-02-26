@@ -1,7 +1,8 @@
+from matplotlib import pyplot as plt
 from graph import Graph
 from visualization import show
 from math import sqrt
-
+import time
 
 g: Graph = Graph(
     [(0, 10), (0, 10), (0, 10), (0, 5)],
@@ -12,7 +13,9 @@ g: Graph = Graph(
      (3, 1, 1, 0.1, 0)]
 )
 
+
 t = 200
+plt.ion()
 
 for _ in range(t):
     for from_node in g:
@@ -33,10 +36,12 @@ for _ in range(t):
 
                 incoming_cars = spec_leaving_cars * k
                 real_incoming_cars = -next_road.cars + \
-                    next_road.update_cars(next_road.cars + incoming_cars)
+                                     next_road.update_cars(next_road.cars + incoming_cars)
 
                 real_leaving_cars += real_incoming_cars
 
             road.update_cars(road.cars - real_leaving_cars)
+    show(g)
 
-show(g)
+plt.ioff()
+plt.show()
