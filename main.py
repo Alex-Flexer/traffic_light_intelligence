@@ -1,8 +1,9 @@
+from math import sqrt
 from matplotlib import pyplot as plt
+
 from graph import Graph
 from visualization import show
-from math import sqrt
-import time
+
 
 g: Graph = Graph(
     [(0, 10), (0, 10), (0, 10), (0, 5)],
@@ -31,12 +32,14 @@ for _ in range(t):
 
             spec_leaving_cars = leaving_cars / len(node.output_roads)
 
-            for _, next_road in node:
-                k = sqrt(1 - next_road.workload)
+            sum_volume = sum([edge.volume for _, edge in node])
 
-                incoming_cars = spec_leaving_cars * k
+            for _, next_road in node:
+                incoming_cars = leaving_cars * \
+                    (next_road.volume / sum_volume) * (1 - next_road.workload)
+
                 real_incoming_cars = -next_road.cars + \
-                                     next_road.update_cars(next_road.cars + incoming_cars)
+                    next_road.update_cars(next_road.cars + incoming_cars)
 
                 real_leaving_cars += real_incoming_cars
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Generator
 
 
 class Edge:
@@ -13,7 +14,11 @@ class Edge:
 
     @property
     def workload(self) -> float:
-        return self.cars / (self._length * self._width)
+        return self.cars / self.volume
+
+    @property
+    def volume(self) -> float:
+        return self._length * self._width
 
     @property
     def cars(self) -> float:
@@ -59,7 +64,7 @@ class Node:
     def __setitem__(self, idx: int, value: int) -> None:
         self.output_roads[idx].update_cars(value)
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[tuple[int, Edge], None, None]:
         for idx, edge in self.output_roads.items():
             yield (idx, edge)
 
