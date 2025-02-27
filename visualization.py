@@ -15,10 +15,19 @@ def show(g: Graph) -> None:
         G.add_node(node.idx)
 
     edge_labels = {}
+    edge_colors = {}
     for node in g.nodes:
         for to_node, edge in node:
             G.add_edge(node.idx, to_node)
-            edge_labels[(node.idx, to_node)] = f"{round(edge.workload * 100, 1)}%"
+            workload_percentage = round(edge.workload * 100, 1)
+            edge_labels[(node.idx, to_node)] = f"{workload_percentage}%"
+
+            if workload_percentage <= 33:
+                edge_colors[(node.idx, to_node)] = 'green'
+            elif workload_percentage <= 66:
+                edge_colors[(node.idx, to_node)] = 'orange'
+            else:
+                edge_colors[(node.idx, to_node)] = 'red'
 
     if node_positions is None:
         node_positions = nx.spring_layout(G, k=1, iterations=50) # Fruchterman-Reingold
@@ -30,29 +39,34 @@ def show(g: Graph) -> None:
     nx.draw_networkx_labels(G, node_positions)
 
     for edge in G.edges():
+        color = edge_colors[edge]
         if (edge[1], edge[0]) in G.edges():
             if edge[0] < edge[1]:
                 nx.draw_networkx_edges(G, node_positions, edgelist=[edge],
                                        connectionstyle=f"arc3,rad=0.3", # изгиб
-                                       edge_color='blue',
+                                       edge_color=color,
                                        arrows=True)
             else:
                 nx.draw_networkx_edges(G, node_positions, edgelist=[edge],
                                        connectionstyle=f"arc3,rad=0.3",
-                                       edge_color='red',
+                                       edge_color=color,
                                        arrows=True)
         else:
             nx.draw_networkx_edges(G, node_positions, edgelist=[edge],
+                                   edge_color=color,
                                    arrows=True)
 
-    curved_edges = [(u, v) for (u, v) in G.edges() if (v, u) in G.edges()]
-    straight_edges = [(u, v) for (u, v) in G.edges() if (v, u) not in G.edges()]
-    curved_edge_labels = {edge: edge_labels[edge] for edge in curved_edges}
-    straight_edge_labels = {edge: edge_labels[edge] for edge in straight_edges}
-
-    nx.draw_networkx_edge_labels(G, node_positions, edge_labels=straight_edge_labels)
-    nx.draw_networkx_edge_labels(G, node_positions, edge_labels=curved_edge_labels,
-                                 label_pos=0.3)
+    for edge, label in edge_labels.items():
+        color = edge_colors[edge]
+        x1, y1 = node_positions[edge[0]]
+        x2, y2 = node_positions[edge[1]]
+        if (edge[1], edge[0]) in G.edges():
+            x = (x1 + x2) / 2 + (y2 - y1) / 4
+            y = (y1 + y2) / 2 - (x2 - x1) / 4
+        else:
+            x = (x1 + x2) / 2
+            y = (y1 + y2) / 2
+        plt.text(x, y, label, ha='center', va='center', color=color)
 
     plt.title("Traffic Light Intelligence")
     plt.axis('off')
