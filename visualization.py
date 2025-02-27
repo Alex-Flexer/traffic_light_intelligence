@@ -7,7 +7,7 @@ node_positions = None
 
 def show(g: Graph) -> None:
     global node_positions
-    print(g)
+    # print(g)
 
     G = nx.DiGraph()
 

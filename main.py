@@ -11,7 +11,8 @@ g: Graph = Graph(
      (1, 2, 10, 2, 4),
      (2, 0, 10, 2, 4),
      (1, 3, 5, 2, 2),
-     (3, 1, 1, 0.1, 0)]
+     (3, 1, 1, 0.1, 0),
+     (3, 0, 1, 0.1, 0)]
 )
 
 
@@ -36,7 +37,7 @@ for _ in range(t):
 
             for _, next_road in node:
                 incoming_cars = leaving_cars * \
-                    (next_road.volume / sum_volume) * (1 - next_road.workload)
+                    (next_road.volume / sum_volume) * sqrt(1 - next_road.workload)
 
                 real_incoming_cars = -next_road.cars + \
                     next_road.update_cars(next_road.cars + incoming_cars)
