@@ -67,3 +67,4 @@ def show(g: Graph) -> None:
     plt.axis('off')
     plt.pause(0.01)
     plt.show(block=False)
+
