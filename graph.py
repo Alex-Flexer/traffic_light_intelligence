@@ -5,11 +5,13 @@ from numpy.random import choice
 
 
 class Edge:
+    _speed_limit: float
     _length: float
     _width: float
     _cars: float
 
-    def __init__(self, length: float, width: float, cars: int = 0):
+    def __init__(self, speed_limit: float, length: float, width: float, cars: int = 0):
+        self._speed_limit = speed_limit
         self._length = length
         self._width = width
         self._cars = cars
@@ -25,6 +27,18 @@ class Edge:
     @property
     def cars(self) -> float:
         return self._cars
+
+    @property
+    def speed_limit(self) -> float:
+        return self._speed_limit
+
+    @property
+    def length(self) -> float:
+        return self._length
+
+    @property
+    def width(self) -> float:
+        return self.width
 
     def update_cars(self, new_cars: int) -> int:
         self._cars = min(self._length * self._width, new_cars)
