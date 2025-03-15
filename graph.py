@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Generator
-# from itertools import
+
+from numpy.random import choice
 
 
 class Edge:
@@ -108,8 +109,10 @@ class Car:
     dest_node_idx: int
     cur_node_idx: int
 
-    def __init__(self):
-        ...
+    def __init__(self, from_node: int, dest_node: int):
+        self.from_node_idx = from_node
+        self.dest_node_idx = dest_node
+        self.cur_node_idx = from_node
 
 
 class Graph:
@@ -120,7 +123,7 @@ class Graph:
         nodes[i][0] = type: str\n
         types:
             "junction": {node-idx: (green-time: int, red-time: int, type: str = "in" | "out")}
-            "locality": (population: float, emigration-factor: float, popularity: float)
+            "locality": (population: float, emigration-factor: float, popularity-factor: float)
         edges[i] = (from: int, to: int, length: float, width: float, cars: int)
         """
         for idx, node_args in enumerate(nodes):
@@ -157,3 +160,23 @@ class Graph:
             for adj_idx, edge in node:
                 res += f"{node.idx} --> {adj_idx}: {round(edge.workload * 100, 3)}%\n"
         return res
+
+
+class CarFactory:
+    _graph: Graph
+
+    def __init__(self, graph: Graph):
+        self._graph = graph
+
+    def generate_cars(self, node_idx: int, amount: int):
+        popularity_factors = [
+            (node.idx, node.popularity_factor)
+            for node in self._graph.nodes
+            if isinstance(node, Locality)
+        ]
+        popularity_factors.sort(key=lambda item: item[0])
+        idxs = [idx for idx, _ in popularity_factors]
+        factors = [factor for _, factor in popularity_factors]
+        for _ in range(amount):
+            chosen_idx = choice(idxs, factors)
+            yield Car(node_idx, chosen_idx)
