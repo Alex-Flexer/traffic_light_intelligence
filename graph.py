@@ -37,8 +37,8 @@ class Node:
     input_nodes: list[int]
 
     def __init__(self, idx: int):
-        self.output_roads = {}
-        self.input_nodes = []
+        self.output_roads: dict[int, Edge] = {}
+        self.input_nodes: list[int] = []
         self.idx = idx
 
     def build_road(
