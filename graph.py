@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Generator
+# from itertools import
 
 
 class Edge:
@@ -31,17 +32,13 @@ class Edge:
 
 class Node:
     idx: int
-    is_light: bool
     output_roads: dict[int, Edge]
     input_nodes: list[int]
-    throughput_capacity: float
 
-    def __init__(self, idx: int, is_light: bool, throughput_capacity: float):
+    def __init__(self, idx: int):
         self.output_roads = {}
         self.input_nodes = []
         self.idx = idx
-        self.is_light = is_light
-        self.throughput_capacity = throughput_capacity
 
     def build_road(
         self,
@@ -69,16 +66,73 @@ class Node:
             yield (idx, edge)
 
 
+class Locality(Node):
+    population: float
+    emigration_factor: float
+    popularity_factor: float
+
+    def __init__(self, idx: int, population: float, emigration_factor, popularity_factor) -> None:
+        super().__init__(idx)
+        self.population = population
+        self.emigration_factor = emigration_factor
+        self.popularity_factor = popularity_factor
+
+
+class StopLight:
+    # tp = in | out
+    tp: str
+    green_time: int
+    red_time: int
+
+    def __init__(self, tp: str, green_time: int, red_time: int) -> None:
+        self.tp = tp
+        self.green_time = green_time
+        self.red_time = red_time
+
+
+class Junction(Node):
+    bandwidth: float
+    stoplights: dict[int, StopLight]
+
+    def __init__(self, idx: int, bandwidth: float, stoplights: dict[int, tuple[int]]):
+        super().__init__(idx)
+        self.bandwidth = bandwidth
+        self.stoplights = {
+            road_idx: StopLight(*args)
+            for road_idx, args in stoplights
+        }
+
+
+class Car:
+    from_node_idx: int
+    dest_node_idx: int
+    cur_node_idx: int
+
+    def __init__(self):
+        ...
+
+
 class Graph:
     _graph: list[Node]
 
     def __init__(self, nodes: list[tuple], edges: list[tuple]) -> None:
         """
-        nodes[i] = (is-light: bool, throughput_capacity: float)\n
+        nodes[i][0] = type: str\n
+        types:
+            "junction": {node-idx: (green-time: int, red-time: int, type: str = "in" | "out")}
+            "locality": (population: float, emigration-factor: float, popularity: float)
         edges[i] = (from: int, to: int, length: float, width: float, cars: int)
         """
-        self._graph: list[Node] = [Node(idx, *node)
-                                   for idx, node in enumerate(nodes)]
+        for idx, node_args in enumerate(nodes):
+            class_type =\
+                Junction if node_args[0] == "junction"\
+                else (Locality if node_args[0] == "locality" else 0)
+
+            if not class_type:
+                raise ValueError("Unknown type of node.")
+
+            self._graph.append(class_type(idx, *node_args))
+
         for edge in edges:
             self._graph[edge[0]].build_road(self._graph, *edge[1:])
 
@@ -88,10 +142,7 @@ class Graph:
 
     @property
     def edges(self) -> list[Edge]:
-        res = []
-        for node in self.nodes:
-            res += [edge for _, edge in node]
-        return res
+        return sum([edge for _, edge in node] for node in self.nodes)
 
     def __getitem__(self, idx: int) -> Node:
         return self._graph[idx]

@@ -1,8 +1,9 @@
 from math import sqrt
 from matplotlib import pyplot as plt
 
-from graph import Graph
+from graph import Graph, Locality, Junction
 from visualization import show
+from sigma_math import calc_leaving_people
 
 
 g: Graph = Graph(
@@ -15,37 +16,57 @@ g: Graph = Graph(
      (3, 0, 1, 0.1, 0)]
 )
 
-
-t = 200
+REPETITIONS = 200
+time = 0
 plt.ion()
 
-for _ in range(t):
+for _ in range(REPETITIONS):
     for from_node in g:
-        for to_node_idx, road in from_node:
-            node = g[to_node_idx]
+        if isinstance(from_node, Locality):
+            locality: Locality = from_node
 
-            if len(node.output_roads) == 0:
-                continue
+            leaving_cars = calc_leaving_people(time, locality.emigration_factor, locality.population)
 
-            leaving_cars = min(road.cars * road.workload,
-                               node.throughput_capacity)
-            real_leaving_cars = 0
+            for _, road in locality:
+                leaving_cars = road.cars * road.workload
+                real_leaving_cars = 0
+                
+                for _, next_road in locality:
+                    incoming_cars = leaving_cars * \
+                        (next_road.volume / sum_volume) * sqrt(1 - next_road.workload)
 
-            spec_leaving_cars = leaving_cars / len(node.output_roads)
+                    real_incoming_cars = -next_road.cars + \
+                        next_road.update_cars(next_road.cars + incoming_cars)
 
-            sum_volume = sum([edge.volume for _, edge in node])
+                    real_leaving_cars += real_incoming_cars
 
-            for _, next_road in node:
-                incoming_cars = leaving_cars * \
-                    (next_road.volume / sum_volume) * sqrt(1 - next_road.workload)
+                road.update_cars(road.cars - real_leaving_cars)
+        else:
+            junction: Junction = from_node
 
-                real_incoming_cars = -next_road.cars + \
-                    next_road.update_cars(next_road.cars + incoming_cars)
+            for to_node_idx, road in junction:
+                to_node = g[to_node_idx]
 
-                real_leaving_cars += real_incoming_cars
+                if len(to_node.output_roads) == 0:
+                    continue
 
-            road.update_cars(road.cars - real_leaving_cars)
+                leaving_cars = min(road.cars * road.workload, to_node.bandwidth)
+                real_leaving_cars = 0
+
+                sum_volume = sum([edge.volume for _, edge in to_node])
+
+                for _, next_road in to_node:
+                    incoming_cars = leaving_cars * \
+                        (next_road.volume / sum_volume) * sqrt(1 - next_road.workload)
+
+                    real_incoming_cars = -next_road.cars + \
+                        next_road.update_cars(next_road.cars + incoming_cars)
+
+                    real_leaving_cars += real_incoming_cars
+
+                road.update_cars(road.cars - real_leaving_cars)
     show(g)
+    time += 1
 
 plt.ioff()
 plt.show()
