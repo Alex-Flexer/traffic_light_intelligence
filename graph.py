@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Generator
+from typing import Generator, Iterable
 
 from numpy.random import choice
 
@@ -76,7 +76,7 @@ class Node:
     def __setitem__(self, idx: int, value: int) -> None:
         self.output_roads[idx].update_cars(value)
 
-    def __iter__(self) -> Generator[tuple[int, Edge], None, None]:
+    def __iter__(self) -> Iterable[tuple[int, Edge]]:
         for idx, edge in self.output_roads.items():
             yield (idx, edge)
 
@@ -121,12 +121,16 @@ class Junction(Node):
 class Car:
     from_node_idx: int
     dest_node_idx: int
-    cur_node_idx: int
+    cur_node_idx: int | None
+    cur_edge: Edge | None
+    cur_path: list[Node]
 
-    def __init__(self, from_node: int, dest_node: int):
+    def __init__(self, from_node: int, dest_node: int, path: list[Node] = []):
         self.from_node_idx = from_node
         self.dest_node_idx = dest_node
         self.cur_node_idx = from_node
+        self.cur_edge = None
+        self.cur_node_idx = path
 
 
 class Graph:
@@ -164,7 +168,7 @@ class Graph:
     def __getitem__(self, idx: int) -> Node:
         return self._graph[idx]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Node]:
         for node in self.nodes:
             yield node
 
@@ -176,21 +180,25 @@ class Graph:
         return res
 
 
-class CarFactory:
+class CarsFactory:
     _graph: Graph
+    _popularity_factors: list[tuple[int, float]]
 
-    def __init__(self, graph: Graph):
+    def __init__(self, graph: Graph) -> None:
         self._graph = graph
 
-    def generate_cars(self, node_idx: int, amount: int):
-        popularity_factors = [
+        self._popularity_factors = sorted([
             (node.idx, node.popularity_factor)
             for node in self._graph.nodes
             if isinstance(node, Locality)
-        ]
-        popularity_factors.sort(key=lambda item: item[0])
-        idxs = [idx for idx, _ in popularity_factors]
-        factors = [factor for _, factor in popularity_factors]
+        ], key=lambda item: item[0])
+
+    def generate_cars(self, node_idx: int, amount: int) -> Generator[Car, None, None]:
+        from shortest_path import find_path
+
+        idxs, factors = zip(*self._popularity_factors)
+
         for _ in range(amount):
             chosen_idx = choice(idxs, factors)
-            yield Car(node_idx, chosen_idx)
+            path = find_path(self._graph, node_idx, chosen_idx)
+            yield Car(node_idx, chosen_idx, path)

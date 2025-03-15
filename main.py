@@ -1,70 +1,52 @@
-from math import sqrt
 from matplotlib import pyplot as plt
+from scipy.stats import norm
 
-from graph import Graph, Locality, Junction
+from graph import Graph, Locality, Junction, CarsFactory
 from visualization import show
-from sigma_math import calc_leaving_people
 
+# graph initialization
+g: Graph = Graph([...], [...])
 
-g: Graph = Graph(
-    [(0, 10), (0, 10), (0, 10), (0, 5)],
-    [(0, 1, 10, 2, 4),
-     (1, 2, 10, 2, 4),
-     (2, 0, 10, 2, 4),
-     (1, 3, 5, 2, 2),
-     (3, 1, 1, 0.1, 0),
-     (3, 0, 1, 0.1, 0)]
-)
+cars_factory = CarsFactory(g)
 
 REPETITIONS = 200
+MU = 6
+SIGMA = 1
+
 time = 0
 plt.ion()
+
+cars: dict[tuple[int, int], list[Car]] = {}
 
 for _ in range(REPETITIONS):
     for from_node in g:
         if isinstance(from_node, Locality):
             locality: Locality = from_node
 
-            leaving_cars = calc_leaving_people(time, locality.emigration_factor, locality.population)
-
-            for _, road in locality:
-                leaving_cars = road.cars * road.workload
-                real_leaving_cars = 0
-                
-                for _, next_road in locality:
-                    incoming_cars = leaving_cars * \
-                        (next_road.volume / sum_volume) * sqrt(1 - next_road.workload)
-
-                    real_incoming_cars = -next_road.cars + \
-                        next_road.update_cars(next_road.cars + incoming_cars)
-
-                    real_leaving_cars += real_incoming_cars
-
-                road.update_cars(road.cars - real_leaving_cars)
-        else:
-            junction: Junction = from_node
-
-            for to_node_idx, road in junction:
-                to_node = g[to_node_idx]
-
-                if len(to_node.output_roads) == 0:
+            all_leaving_cars = locality.population * locality.emigration_factor
+            cur_leaving_cars = round(
+                all_leaving_cars * norm.pdf(time % 24, loc=MU, scale=SIGMA)
+            )
+            
+            for car in  cars_factory.generate_cars(locality.idx, cur_leaving_cars):
+                if len(car.cur_path) == 0:
                     continue
 
-                leaving_cars = min(road.cars * road.workload, to_node.bandwidth)
-                real_leaving_cars = 0
+                nearest_node = car.cur_path[0]
+                road = locality.output_roads[nearest_node.idx]
 
-                sum_volume = sum([edge.volume for _, edge in to_node])
+                if road.update_cars((old_amount_cars:=road.cars) + 1) == old_amount_cars + 1:
+                    car.cur_edge = road
+                    car.cur_node_idx = None
 
-                for _, next_road in to_node:
-                    incoming_cars = leaving_cars * \
-                        (next_road.volume / sum_volume) * sqrt(1 - next_road.workload)
+                    if (locality.idx, nearest_node.idx) not in cars:
+                        car[(locality.idx, nearest_node.idx)] = []
 
-                    real_incoming_cars = -next_road.cars + \
-                        next_road.update_cars(next_road.cars + incoming_cars)
-
-                    real_leaving_cars += real_incoming_cars
-
-                road.update_cars(road.cars - real_leaving_cars)
+                    cars[(locality.idx, nearest_node.idx)].append(car)
+        else:
+            junction: Junction = from_node
+            ...
+            
     show(g)
     time += 1
 
