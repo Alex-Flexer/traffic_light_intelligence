@@ -1,14 +1,14 @@
 from matplotlib import pyplot as plt
 from scipy.stats import norm
 
-from graph import Graph, Locality, Junction, CarsFactory
-from visualization import show
+from graph import Graph, Locality, Junction, CarsFactory, Car
 from normal_distribution import get_leaving_citizens_factor, get_leaving_guests_factor
+from visualization import show
 
 # graph initialization
-g: Graph = Graph([...], [...])
+graph: Graph = Graph([...], [...])
 
-cars_factory = CarsFactory(g)
+cars_factory = CarsFactory(graph)
 
 REPETITIONS = 200
 
@@ -18,7 +18,7 @@ plt.ion()
 cars: dict[Edge, list[Car]] = {}
 
 for _ in range(REPETITIONS):
-    for node in g:
+    for node in graph:
         if not isinstance(node, Locality):
             continue
 
@@ -39,6 +39,7 @@ for _ in range(REPETITIONS):
             if road.update_cars((old_amount_cars := road.cars) + 1) == old_amount_cars + 1:
                 car.cur_edge = road
                 car.cur_node_idx = None
+                car.cur_path.pop(0)
 
                 if road not in cars:
                     car[road] = []
@@ -48,9 +49,9 @@ for _ in range(REPETITIONS):
     for edge, cars_stream in cars:
         for car in cars_stream:
             # cars stream distribution
-            ... 
+            ...
 
-    show(g)
+    show(graph)
     time += 1
 
 plt.ioff()
