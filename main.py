@@ -1,8 +1,7 @@
-from matplotlib import pyplot as plt
-from scipy.stats import norm
+import matplotlib.pyplot as plt
 
-from graph import Graph, Locality, Junction, CarsFactory, Car
-from normal_distribution import get_leaving_citizens_factor, get_leaving_guests_factor
+from graph import Graph, Locality, CarsFactory, Car, Edge
+from normal_distribution import get_leaving_citizens_factor
 from visualization import show
 
 # graph initialization

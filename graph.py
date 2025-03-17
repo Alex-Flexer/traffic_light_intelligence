@@ -64,8 +64,7 @@ class Node:
         road_cars: float = 0.0
     ) -> None:
         if to in self.output_roads:
-            raise ValueError(
-                f"Road between nodes {self.idx} and {to} already exists.")
+            raise ValueError(f"Road between nodes {self.idx} and {to} already exists.")
 
         self.output_roads[to] = Edge(road_length, road_width, road_cars)
         graph[to].input_nodes.append(self.idx)

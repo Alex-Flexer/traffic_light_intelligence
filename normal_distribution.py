@@ -1,8 +1,8 @@
 from scipy.stats import norm
 
 SIGMA = 1.8
-CITIZENS_MU = 7
-GUESTS_MU = 19
+CITIZENS_MU = 8
+GUESTS_MU = 18
 
 
 def get_leaving_citizens_factor(time: int) -> float:
