@@ -3,19 +3,27 @@ import astar
 from graph import Graph, Node, Edge
 
 
-BOUND = 0.8
+A = -1.04772
+B = -0.70369
+C = 1.09484
+D = 0.360749
+E = 1.00674
 
 
 def find_path(graph: Graph, start: Node, goal: Node) -> Iterable[Node]:
     def get_neighbors(node: Node) -> Iterable[Node]:
         return [graph[idx] for idx in node.output_roads.keys()]
 
-    def calc_avg_speed(edge: Edge) -> float:
+    def calc_bandwidth_road_factor(workload: float) -> float:
         return (
-            edge.speed_limit
-            if edge.workload <= BOUND
-            else (edge.workload - 1) * (-edge.speed_limit) / (1 - BOUND)
+            A * workload**4 +
+            B * workload**3 +
+            C * workload**2 +
+            D * workload + E
         )
+
+    def calc_avg_speed(edge: Edge) -> float:
+        return calc_bandwidth_road_factor(edge.workload) * edge.speed_limit
 
     def calc_distance(a: Node, b: Node) -> float:
         edge = a.output_roads[b.idx]
