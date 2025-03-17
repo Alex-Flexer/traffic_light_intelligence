@@ -10,7 +10,7 @@ D = 0.360749
 E = 1.00674
 
 
-def find_path(graph: Graph, start: Node, goal: Node) -> Iterable[Node]:
+def find_path(graph: Graph, start_idx: int, goal_idx: int) -> Iterable[Node]:
     def get_neighbors(node: Node) -> Iterable[Node]:
         return [graph[idx] for idx in node.output_roads.keys()]
 
@@ -29,6 +29,8 @@ def find_path(graph: Graph, start: Node, goal: Node) -> Iterable[Node]:
         edge = a.output_roads[b.idx]
         avg_speed = calc_avg_speed(edge)
         return edge.length / avg_speed
+
+    start, goal = graph[start_idx], graph[goal_idx]
 
     return astar.find_path(start, goal,
                            neighbors_fnct=get_neighbors,
