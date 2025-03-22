@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from graph import Graph, Locality, CarsFactory, Car, Edge
+from graph import Graph, Locality, CarsFactory, Car, Edge, Junction
 from normal_distribution import get_leaving_citizens_factor
 from visualization import show
 
