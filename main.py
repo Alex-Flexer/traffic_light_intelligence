@@ -45,10 +45,38 @@ for _ in range(REPETITIONS):
 
                 cars[road].append(car)
 
-    for edge, cars_stream in cars:
+    for edge, cars_stream in cars.items():
+        cars_to_remove = []
+
         for car in cars_stream:
-            # cars stream distribution
-            ...
+            if not car.cur_path:  
+                cars_to_remove.append(car)
+                edge.update_cars(edge.cars - 1)
+                continue
+
+            next_node = car.cur_path[0]
+            if isinstance(next_node, Junction):
+                stoplight = next_node.stoplights.get(car.cur_edge.idx)
+                if stoplight and stoplight.tp == "out":
+                    if (time % (stoplight.green_time + stoplight.red_time)) >= stoplight.green_time:
+                        continue
+
+            next_road = next_node.output_roads.get(car.cur_path[1].idx if len(car.cur_path) > 1 else car.dest_node_idx)
+
+            if next_road:
+                old_cars = next_road.cars
+                if next_road.update_cars(old_cars + 1) > old_cars:  
+                    edge.update_cars(edge.cars - 1)
+                    cars_to_remove.append(car)
+                    car.cur_edge = next_road
+                    car.cur_path.pop(0)
+
+                    if next_road not in cars:
+                        cars[next_road] = []
+                    cars[next_road].append(car)
+
+        for car in cars_to_remove:
+            cars_stream.remove(car)
 
     show(graph)
     time += 1
