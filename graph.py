@@ -111,7 +111,14 @@ class Junction(Node):
     out_stoplight: StopLight
     stoplights: dict[int, StopLight]
 
-    def __init__(self, idx: int, bandwidth: float, out_stoplight: StopLight, stoplights: dict[int, tuple[int]]):
+    def __init__(
+        self,
+        idx: int,
+        bandwidth: float,
+        out_stoplight: StopLight,
+        stoplights: dict[int, tuple[int]]
+    ) -> None:
+
         super().__init__(idx)
         self.bandwidth = bandwidth
         self.out_stoplight = out_stoplight
