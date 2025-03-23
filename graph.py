@@ -64,7 +64,8 @@ class Node:
         road_cars: float = 0.0
     ) -> None:
         if to in self.output_roads:
-            raise ValueError(f"Road between nodes {self.idx} and {to} already exists.")
+            raise ValueError(
+                f"Road between nodes {self.idx} and {to} already exists.")
 
         self.output_roads[to] = Edge(road_length, road_width, road_cars)
         graph[to].input_nodes.append(self.idx)
@@ -94,24 +95,27 @@ class Locality(Node):
 
 class StopLight:
     # tp = in | out
-    tp: str
     green_time: int
     red_time: int
 
-    def __init__(self, tp: str, green_time: int, red_time: int) -> None:
-        self.tp = tp
+    def __init__(self, green_time: int, red_time: int) -> None:
         self.green_time = green_time
         self.red_time = red_time
+
+    def is_green(self, time: int) -> bool:
+        return time % (self.green_time + self.red_time) <= self.green_time
 
 
 class Junction(Node):
     bandwidth: float
+    out_stoplight: StopLight
     stoplights: dict[int, StopLight]
 
-    def __init__(self, idx: int, bandwidth: float, stoplights: dict[int, tuple[int]]):
+    def __init__(self, idx: int, bandwidth: float, out_stoplight: StopLight, stoplights: dict[int, tuple[int]]):
         super().__init__(idx)
         self.bandwidth = bandwidth
-        self.stoplights = {
+        self.out_stoplight = out_stoplight
+        self.stoplights: dict[int, StopLight] = {
             road_idx: StopLight(*args)
             for road_idx, args in stoplights
         }
@@ -128,7 +132,7 @@ class Car:
         self.from_node_idx = from_node
         self.dest_node_idx = dest_node
         self.cur_node_idx = from_node
-        self.cur_edge = None
+        self.cur_edge: Edge | None = None
         self.cur_node_idx = path
 
 
@@ -186,11 +190,13 @@ class CarsFactory:
     def __init__(self, graph: Graph) -> None:
         self._graph = graph
 
-        self._popularity_factors = sorted([
-            (node.idx, node.popularity_factor)
-            for node in self._graph.nodes
-            if isinstance(node, Locality)
-        ], key=lambda item: item[0])
+        self._popularity_factors = sorted(
+            [
+                (node.idx, node.popularity_factor)
+                for node in self._graph.nodes
+                if isinstance(node, Locality)
+            ]
+        )
 
     def generate_cars(self, node_idx: int, amount: int) -> Generator[Car, None, None]:
         from shortest_path import find_path

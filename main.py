@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from graph import Graph, Locality, CarsFactory, Car, Edge, Junction
+from graph import Graph, Locality, CarsFactory, Car, Edge, Junction, Node
 from normal_distribution import get_leaving_citizens_factor
 from visualization import show
 
@@ -11,10 +11,10 @@ cars_factory = CarsFactory(graph)
 
 REPETITIONS = 200
 
-time = 0
 plt.ion()
 
 cars: dict[Edge, list[Car]] = {}
+time = 0
 
 for _ in range(REPETITIONS):
     for node in graph:
@@ -46,37 +46,50 @@ for _ in range(REPETITIONS):
                 cars[road].append(car)
 
     for edge, cars_stream in cars.items():
-        cars_to_remove = []
+        cars_idx_to_remove = []
 
-        for car in cars_stream:
-            if not car.cur_path:  
-                cars_to_remove.append(car)
+
+        for car_idx, car in enumerate(cars_stream):
+            if not car.cur_path:
+                raise ValueError("Car's path became empty before reaching destination node.")
+
+            next_node: Node = car.cur_path[0]
+
+            if len(car.cur_path) == 1:
                 edge.update_cars(edge.cars - 1)
+                car.cur_path.pop(0)
+                car.cur_edge = None
+                car.cur_node_idx = next_node.idx
+                cars_idx_to_remove.append(car_idx)
                 continue
 
-            next_node = car.cur_path[0]
             if isinstance(next_node, Junction):
-                stoplight = next_node.stoplights.get(car.cur_edge.idx)
-                if stoplight and stoplight.tp == "out":
-                    if (time % (stoplight.green_time + stoplight.red_time)) >= stoplight.green_time:
-                        continue
+                next_node: Junction = next_node
 
-            next_road = next_node.output_roads.get(car.cur_path[1].idx if len(car.cur_path) > 1 else car.dest_node_idx)
+                if not next_node.out_stoplight.is_green(time):
+                    continue
 
-            if next_road:
-                old_cars = next_road.cars
-                if next_road.update_cars(old_cars + 1) > old_cars:  
-                    edge.update_cars(edge.cars - 1)
-                    cars_to_remove.append(car)
-                    car.cur_edge = next_road
-                    car.cur_path.pop(0)
+                stoplight = next_node.stoplights.get(car.cur_path[1].idx)
+                if stoplight is not None and not stoplight.is_green():
+                    continue
+            else:
+                next_node: Locality = next_node
 
-                    if next_road not in cars:
-                        cars[next_road] = []
-                    cars[next_road].append(car)
+            next_road = next_node.output_roads.get(car.cur_path[1].idx)
 
-        for car in cars_to_remove:
-            cars_stream.remove(car)
+            if next_road.update_cars((next_road_cars := next_road.cars) + 1) > next_road_cars:
+                edge.update_cars(edge.cars - 1)
+                car.cur_edge = next_road
+                car.cur_path.pop(0)
+
+                if next_road not in cars:
+                    cars[next_road] = []
+
+                cars[next_road].append(car)
+                cars_idx_to_remove.append(car_idx)
+
+        for car_idx in cars_idx_to_remove:
+            cars_stream.pop(car_idx)
 
     show(graph)
     time += 1
