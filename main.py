@@ -2,12 +2,30 @@ import matplotlib.pyplot as plt
 
 from graph import Graph, Locality, CarsFactory, Car, Edge, Junction, Node
 from normal_distribution import get_leaving_citizens_factor
+# from shortest_path import find_path
 from visualization import show
 
 # graph initialization
 graph: Graph = Graph(
-    ["locality", 100, 0.8, 0.15],
-    [...]
+    [
+        ("locality", 1000, 0.7, 0.6),
+        ("locality", 500, 0.5, 0.3),
+        ("locality", 200, 0.3, 0.1),
+        ("junction", 50, (30, 20), {0: (25, 25), 1: (25, 25), 2: (25, 25)}),
+        ("junction", 40, (20, 30), {0: (20, 30), 3: (25, 25)})
+    ],
+    [
+        (0, 4, 60, 150, 2, 0),
+        (0, 3, 60, 100, 3, 0),
+        (1, 3, 60, 80, 2, 0),
+        (2, 3, 60, 60, 1, 0),
+        (3, 0, 60, 100, 3, 0),
+        (3, 1, 60, 80, 2, 0),
+        (3, 2, 60, 60, 1, 0),
+        (3, 4, 60, 50, 2, 0),
+        (4, 0, 60, 150, 2, 0),
+        (4, 3, 60, 50, 2, 0)
+    ]
 )
 
 cars_factory = CarsFactory(graph)
@@ -16,7 +34,8 @@ REPETITIONS = 200
 
 plt.ion()
 
-cars: dict[Edge, list[Car]] = {}
+cars_edges: dict[Edge, list[Car]] = {}
+cars_nodes: dict[int, list[Car]] = {}
 time = 0
 
 for _ in range(REPETITIONS):
@@ -26,12 +45,18 @@ for _ in range(REPETITIONS):
 
         locality: Locality = node
 
-        all_leaving_cars = locality.population * locality.emigration_factor
-        cur_leaving_cars = round(
-            all_leaving_cars * get_leaving_citizens_factor(time)
-        )
+        all_leaving_native_cars = locality.population * locality.emigration_factor
+        cur_leaving_native_cars = round(all_leaving_native_cars * get_leaving_citizens_factor(time))
 
-        for car in cars_factory.generate_cars(locality.idx, cur_leaving_cars):
+        # all_leaving_guest_cars = cars_nodes[locality.idx]
+        # cur_leaving_guest_cars = round(all_leaving_guest_cars * get_leaving_guests_factor(time))
+
+        # for car in cars_nodes[locality.idx][:cur_leaving_guest_cars]:
+        #     car.cur_path = find_path(graph, car.cur_node_idx, car.from_node_idx)
+
+        for car in cars_factory.generate_cars(locality.idx, cur_leaving_native_cars):
+            print([node.idx for node in car.cur_path], locality.output_roads)
+            print(car.from_node_idx, car.dest_node_idx)
             if car.cur_path is None or len(car.cur_path) == 0:
                 continue
 
@@ -43,15 +68,15 @@ for _ in range(REPETITIONS):
                 car.cur_node_idx = None
                 car.cur_path.pop(0)
 
-                if road not in cars:
-                    car[road] = []
+                if road not in cars_edges:
+                    cars_edges[road] = []
 
-                cars[road].append(car)
+                cars_edges[road].append(car)
 
-    for edge, cars_stream in cars.items():
-        cars_idx_to_remove = []
+    for edge, cars_stream in cars_edges.items():
+        cars_to_remove = []
 
-        for car_idx, car in enumerate(cars_stream):
+        for car in cars_stream:
             if not car.cur_path:
                 raise ValueError("Car's path became empty before reaching destination node.")
 
@@ -62,7 +87,8 @@ for _ in range(REPETITIONS):
                 car.cur_path.pop(0)
                 car.cur_edge = None
                 car.cur_node_idx = next_node.idx
-                cars_idx_to_remove.append(car_idx)
+                cars_nodes[next_node.idx] = cars_nodes.get(next_node.idx, []) + [car]
+                cars_to_remove.append(car)
                 continue
 
             if isinstance(next_node, Junction):
@@ -84,14 +110,16 @@ for _ in range(REPETITIONS):
                 car.cur_edge = next_road
                 car.cur_path.pop(0)
 
-                if next_road not in cars:
-                    cars[next_road] = []
+                if next_road not in cars_edges:
+                    cars_edges[next_road] = []
 
-                cars[next_road].append(car)
-                cars_idx_to_remove.append(car_idx)
+                cars_edges[next_road].append(car)
+                cars_to_remove.append(car)
 
-        for car_idx in cars_idx_to_remove:
-            cars_stream.pop(car_idx)
+        print(cars_stream, cars_to_remove)
+        for car in cars_to_remove:
+            cars_stream.remove(car)
+        cars_to_remove.clear()
 
     show(graph)
     time += 1

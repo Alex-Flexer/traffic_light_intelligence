@@ -59,6 +59,7 @@ class Node:
         self,
         graph: list[Node],
         to: int,
+        speed_limit: int,
         road_length: float,
         road_width: float,
         road_cars: float = 0.0
@@ -67,7 +68,7 @@ class Node:
             raise ValueError(
                 f"Road between nodes {self.idx} and {to} already exists.")
 
-        self.output_roads[to] = Edge(road_length, road_width, road_cars)
+        self.output_roads[to] = Edge(speed_limit, road_length, road_width, road_cars)
         graph[to].input_nodes.append(self.idx)
 
     def __getitem__(self, idx: int) -> Edge:
@@ -124,7 +125,7 @@ class Junction(Node):
         self.out_stoplight = out_stoplight
         self.stoplights: dict[int, StopLight] = {
             node_idx: StopLight(*args)
-            for node_idx, args in stoplights
+            for node_idx, args in stoplights.items()
         }
 
 
@@ -140,7 +141,7 @@ class Car:
         self.dest_node_idx = dest_node
         self.cur_node_idx = from_node
         self.cur_edge: Edge | None = None
-        self.cur_node_idx = path
+        self.cur_path = path
 
 
 class Graph:
@@ -163,9 +164,10 @@ class Graph:
         edges[i] = (
             [0]from: int,
             [1]to: int,
-            [2]length: float,
-            [3]width: float,
-            [4]cars: int
+            [2]speed-limit: int
+            [3]length: float,
+            [4]width: float,
+            [5]cars: int
         )
         """
         self._graph = []
@@ -177,7 +179,7 @@ class Graph:
             if not class_type:
                 raise ValueError("Unknown type of node.")
 
-            self._graph.append(class_type(idx, *node_args))
+            self._graph.append(class_type(idx, *node_args[1:]))
 
         for edge in edges:
             self._graph[edge[0]].build_road(self._graph, *edge[1:])
@@ -226,6 +228,6 @@ class CarsFactory:
         idxs, factors = zip(*self._popularity_factors)
 
         for _ in range(amount):
-            chosen_idx = choice(idxs, factors)
-            path = find_path(self._graph, node_idx, chosen_idx)
+            chosen_idx = choice(idxs, p=factors)
+            path = find_path(self._graph, node_idx, chosen_idx)[1:]
             yield Car(node_idx, chosen_idx, path)
