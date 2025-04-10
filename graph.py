@@ -107,14 +107,14 @@ class StopLight:
 
 
 class Junction(Node):
-    bandwidth: float
+    bandwidth: int
     out_stoplight: StopLight
     stoplights: dict[int, StopLight]
 
     def __init__(
         self,
         idx: int,
-        bandwidth: float,
+        bandwidth: int,
         out_stoplight: StopLight,
         stoplights: dict[int, tuple[int]]
     ) -> None:
@@ -123,8 +123,8 @@ class Junction(Node):
         self.bandwidth = bandwidth
         self.out_stoplight = out_stoplight
         self.stoplights: dict[int, StopLight] = {
-            road_idx: StopLight(*args)
-            for road_idx, args in stoplights
+            node_idx: StopLight(*args)
+            for node_idx, args in stoplights
         }
 
 
@@ -148,11 +148,25 @@ class Graph:
 
     def __init__(self, nodes: list[tuple], edges: list[tuple]) -> None:
         """
-        nodes[i][0] = type: str\n
+        nodes[i][0] = type: str
         types:
-            "junction": {node-idx: (green-time: int, red-time: int, type: str = "in" | "out")}
-            "locality": (population: float, emigration-factor: float, popularity-factor: float)
-        edges[i] = (from: int, to: int, length: float, width: float, cars: int)
+            "junction": (
+                [0]bandwidth: int
+                [1]out-stoplight: (green-time: int, red-time: int),
+                [2]in-stoplights: {node-idx: (green-time: int, red-time: int)}
+            )
+            "locality": (
+                [0]population: int,
+                [1]emigration-factor: float,
+                [2]popularity-factor: float
+            )
+        edges[i] = (
+            [0]from: int,
+            [1]to: int,
+            [2]length: float,
+            [3]width: float,
+            [4]cars: int
+        )
         """
         for idx, node_args in enumerate(nodes):
             class_type =\

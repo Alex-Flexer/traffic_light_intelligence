@@ -5,7 +5,10 @@ from normal_distribution import get_leaving_citizens_factor
 from visualization import show
 
 # graph initialization
-graph: Graph = Graph([...], [...])
+graph: Graph = Graph(
+    ["locality", 100, 0.8, 0.15],
+    [...]
+)
 
 cars_factory = CarsFactory(graph)
 
@@ -47,7 +50,6 @@ for _ in range(REPETITIONS):
 
     for edge, cars_stream in cars.items():
         cars_idx_to_remove = []
-
 
         for car_idx, car in enumerate(cars_stream):
             if not car.cur_path:
