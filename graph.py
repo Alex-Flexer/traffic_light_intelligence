@@ -38,7 +38,7 @@ class Edge:
 
     @property
     def width(self) -> float:
-        return self.width
+        return self._width
 
     def update_cars(self, new_cars: int) -> int:
         self._cars = min(self._length * self._width, new_cars)
@@ -168,6 +168,7 @@ class Graph:
             [4]cars: int
         )
         """
+        self._graph = []
         for idx, node_args in enumerate(nodes):
             class_type =\
                 Junction if node_args[0] == "junction"\
