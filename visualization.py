@@ -1,13 +1,15 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-from graph import Graph
+from graph import Graph, Locality
 
 node_positions = None
 
 
 def show(g: Graph) -> None:
     global node_positions
+    # print("-" * 20)
     # print(g)
+    # print("-" * 20)
 
     G = nx.DiGraph()
 
@@ -20,7 +22,7 @@ def show(g: Graph) -> None:
         for to_node, edge in node:
             G.add_edge(node.idx, to_node)
             workload_percentage = round(edge.workload * 100, 1)
-            edge_labels[(node.idx, to_node)] = f"{workload_percentage}%"
+            edge_labels[(node.idx, to_node)] = f"{workload_percentage}"
 
             edge_colors[(node.idx, to_node)] = workload_percentage / 100
 

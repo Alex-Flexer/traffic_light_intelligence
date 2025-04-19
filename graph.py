@@ -109,20 +109,20 @@ class StopLight:
 
 class Junction(Node):
     bandwidth: int
-    out_stoplight: StopLight
+    out_stoplight: StopLight | None
     stoplights: dict[int, StopLight]
 
     def __init__(
         self,
         idx: int,
         bandwidth: int,
-        out_stoplight: StopLight,
+        out_stoplight: tuple[int],
         stoplights: dict[int, tuple[int]]
     ) -> None:
 
         super().__init__(idx)
         self.bandwidth = bandwidth
-        self.out_stoplight = out_stoplight
+        self.out_stoplight = StopLight(*out_stoplight)
         self.stoplights: dict[int, StopLight] = {
             node_idx: StopLight(*args)
             for node_idx, args in stoplights.items()
@@ -172,10 +172,13 @@ class Graph:
         """
         self._graph = []
         for idx, node_args in enumerate(nodes):
-            class_type =\
-                Junction if node_args[0] == "junction"\
-                else (Locality if node_args[0] == "locality" else 0)
-
+            class_type: Locality | Junction = 0
+            
+            if node_args[0] == "locality":
+                class_type = Locality
+            elif node_args[0] == "junction":
+                class_type = Junction
+                
             if not class_type:
                 raise ValueError("Unknown type of node.")
 
@@ -190,7 +193,7 @@ class Graph:
 
     @property
     def edges(self) -> list[Edge]:
-        return sum([edge for _, edge in node] for node in self.nodes)
+        return sum([[edge for _, edge in node] for node in self.nodes], start=[])
 
     def __getitem__(self, idx: int) -> Node:
         return self._graph[idx]
@@ -203,7 +206,7 @@ class Graph:
         res = ""
         for node in self._graph:
             for adj_idx, edge in node:
-                res += f"{node.idx} --> {adj_idx}: {round(edge.workload * 100, 3)}%\n"
+                res += f"({id(edge)}) {node.idx} --> {adj_idx}: {edge.cars}\n"
         return res
 
 
