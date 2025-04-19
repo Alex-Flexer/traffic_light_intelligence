@@ -1,15 +1,17 @@
+from datetime import timedelta
+
 import networkx as nx
 import matplotlib.pyplot as plt
-from graph import Graph, Locality
+from graph import Graph
+
+HOUR = 3600
+MINUTE = 60
 
 node_positions = None
 
 
-def show(g: Graph) -> None:
+def show(g: Graph, time: timedelta) -> None:
     global node_positions
-    # print("-" * 20)
-    # print(g)
-    # print("-" * 20)
 
     G = nx.DiGraph()
 
@@ -27,7 +29,7 @@ def show(g: Graph) -> None:
             edge_colors[(node.idx, to_node)] = workload_percentage / 100
 
     if node_positions is None:
-        node_positions = nx.spring_layout(G, k=1, iterations=50) # Fruchterman-Reingold
+        node_positions = nx.spring_layout(G, k=1, iterations=50)  # Fruchterman-Reingold
 
     plt.clf()
     plt.figure(1, figsize=(20, 10))
@@ -40,7 +42,7 @@ def show(g: Graph) -> None:
         if (edge[1], edge[0]) in G.edges():
             if edge[0] < edge[1]:
                 nx.draw_networkx_edges(G, node_positions, edgelist=[edge],
-                                       connectionstyle=f"arc3,rad=0.3", # изгиб
+                                       connectionstyle=f"arc3,rad=0.3",  # изгиб
                                        edge_color=(color, 0.3, 0),
                                        arrows=True)
             else:
@@ -65,8 +67,11 @@ def show(g: Graph) -> None:
             y = (y1 + y2) / 2
         plt.text(x, y, label, ha='center', va='center', color=(color, 0.3, 0))
 
-    plt.title("Traffic Light Intelligence")
+    hours = str(time.seconds // HOUR).rjust(2, '0')
+    minutes = str(time.seconds % HOUR // 60).rjust(2, '0')
+    seconds = str(time.seconds % HOUR % MINUTE).rjust(2, '0')
+
+    plt.title(f"{hours}:{minutes}:{seconds}")
     plt.axis('off')
     plt.pause(0.01)
     plt.show(block=False)
-

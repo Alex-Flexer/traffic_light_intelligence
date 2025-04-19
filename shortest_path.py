@@ -32,6 +32,8 @@ def find_path(graph: Graph, start_idx: int, goal_idx: int) -> Iterable[Node]:
 
     start, goal = graph[start_idx], graph[goal_idx]
 
-    return list(astar.find_path(start, goal,
-                                neighbors_fnct=get_neighbors,
-                                distance_between_fnct=calc_distance))
+    return list(astar.find_path(
+        start, goal,
+        neighbors_fnct=get_neighbors,
+        distance_between_fnct=calc_distance)
+    )[1:]

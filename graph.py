@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Generator, Iterable
+from datetime import timedelta
 
 from numpy.random import choice
 
@@ -95,15 +96,14 @@ class Locality(Node):
 
 
 class StopLight:
-    # tp = in | out
     green_time: int
     red_time: int
 
     def __init__(self, green_time: int, red_time: int) -> None:
-        self.green_time = green_time
-        self.red_time = red_time
+        self.green_time = timedelta(green_time)
+        self.red_time = timedelta(red_time)
 
-    def is_green(self, time: int) -> bool:
+    def is_green(self, time: timedelta) -> bool:
         return time % (self.green_time + self.red_time) <= self.green_time
 
 
@@ -229,8 +229,11 @@ class CarsFactory:
         from shortest_path import find_path
 
         idxs, factors = zip(*self._popularity_factors)
+        res = []
 
         for _ in range(amount):
             chosen_idx = choice(idxs, p=factors)
-            path = find_path(self._graph, node_idx, chosen_idx)[1:]
-            yield Car(node_idx, chosen_idx, path)
+            path = find_path(self._graph, node_idx, chosen_idx)
+            res.append(Car(node_idx, chosen_idx, path))
+
+        return res
