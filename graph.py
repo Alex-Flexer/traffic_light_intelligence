@@ -100,8 +100,8 @@ class StopLight:
     red_time: int
 
     def __init__(self, green_time: int, red_time: int) -> None:
-        self.green_time = timedelta(green_time)
-        self.red_time = timedelta(red_time)
+        self.green_time = timedelta(seconds=green_time)
+        self.red_time = timedelta(seconds=red_time)
 
     def is_green(self, time: timedelta) -> bool:
         return time % (self.green_time + self.red_time) <= self.green_time
