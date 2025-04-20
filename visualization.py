@@ -29,7 +29,7 @@ def show(g: Graph, time: timedelta) -> None:
             edge_colors[(node.idx, to_node)] = workload_percentage / 100
 
     if node_positions is None:
-        node_positions = nx.spring_layout(G, k=1, iterations=50)  # Fruchterman-Reingold
+        node_positions = nx.spring_layout(G, k=1, iterations=50)
 
     plt.clf()
     plt.figure(1, figsize=(20, 10))
@@ -39,21 +39,16 @@ def show(g: Graph, time: timedelta) -> None:
 
     for edge in G.edges():
         color = edge_colors[edge]
+        params = {
+            "edgelist": [edge],
+            "edge_color": (color, 0.3, 0),
+            "arrows": True
+        }
+
         if (edge[1], edge[0]) in G.edges():
-            if edge[0] < edge[1]:
-                nx.draw_networkx_edges(G, node_positions, edgelist=[edge],
-                                       connectionstyle=f"arc3,rad=0.3",  # изгиб
-                                       edge_color=(color, 0.3, 0),
-                                       arrows=True)
-            else:
-                nx.draw_networkx_edges(G, node_positions, edgelist=[edge],
-                                       connectionstyle=f"arc3,rad=0.3",
-                                       edge_color=(color, 0.3, 0),
-                                       arrows=True)
-        else:
-            nx.draw_networkx_edges(G, node_positions, edgelist=[edge],
-                                   edge_color=(color, 0.3, 0),
-                                   arrows=True)
+            params["connectionstyle"] = "arc3,rad=0.3"
+
+        nx.draw_networkx_edges(G, node_positions, **params)
 
     for edge, label in edge_labels.items():
         color = edge_colors[edge]
