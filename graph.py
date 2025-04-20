@@ -9,13 +9,13 @@ class Edge:
     _speed_limit: float
     _length: float
     _width: float
-    _cars: float
+    _cars: int
 
-    def __init__(self, speed_limit: float, length: float, width: float, cars: int = 0):
+    def __init__(self, speed_limit: float, length: float, width: float):
         self._speed_limit = speed_limit
         self._length = length
         self._width = width
-        self._cars = cars
+        self._cars = 0
 
     @property
     def workload(self) -> float:
@@ -26,7 +26,7 @@ class Edge:
         return self._length * self._width
 
     @property
-    def cars(self) -> float:
+    def cars(self) -> int:
         return self._cars
 
     @property
@@ -42,7 +42,7 @@ class Edge:
         return self._width
 
     def update_cars(self, new_cars: int) -> int:
-        self._cars = min(self._length * self._width, new_cars)
+        self._cars = min(self.volume, new_cars)
         return self._cars
 
 
@@ -62,14 +62,13 @@ class Node:
         to: int,
         speed_limit: int,
         road_length: float,
-        road_width: float,
-        road_cars: float = 0.0
+        road_width: float
     ) -> None:
         if to in self.output_roads:
             raise ValueError(
                 f"Road between nodes {self.idx} and {to} already exists.")
 
-        self.output_roads[to] = Edge(speed_limit, road_length, road_width, road_cars)
+        self.output_roads[to] = Edge(speed_limit, road_length, road_width)
         graph[to].input_nodes.append(self.idx)
 
     def __getitem__(self, idx: int) -> Edge:
@@ -166,19 +165,18 @@ class Graph:
             [1]to: int,
             [2]speed-limit: int
             [3]length: float,
-            [4]width: float,
-            [5]cars: int
+            [4]width: float
         )
         """
         self._graph = []
         for idx, node_args in enumerate(nodes):
             class_type: Locality | Junction = 0
-            
+
             if node_args[0] == "locality":
                 class_type = Locality
             elif node_args[0] == "junction":
                 class_type = Junction
-                
+
             if not class_type:
                 raise ValueError("Unknown type of node.")
 
