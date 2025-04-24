@@ -97,15 +97,39 @@ class Locality(Node):
 class StopLight:
     green_time: timedelta
     red_time: timedelta
+
+    _future_red_time: timedelta
+    _future_green_time: timedelta
+
     time_last_update: timedelta
 
     def __init__(self, green_time: int, red_time: int) -> None:
-        self.time_last_update = timedelta()
+        self.time_last_update = timedelta(days=100000)
+
         self.green_time = timedelta(seconds=green_time)
         self.red_time = timedelta(seconds=red_time)
 
+        self._future_green_time = timedelta()
+        self._future_red_time = timedelta()
+
+    def update_times(self, time: timedelta, new_green_time: int, new_red_time: int):
+        full_cycle = self.green_time + self.red_time
+
+        self._future_green_time = timedelta(seconds=new_green_time)
+        self._future_red_time = timedelta(seconds=new_red_time)
+
+        self.time_last_update = timedelta(seconds=(time + full_cycle).seconds // (full_cycle).seconds * full_cycle.seconds)
+        # print((time + full_cycle).seconds, type(full_cycle))
+
     def is_green(self, time: timedelta) -> bool:
-        return (time - self.time_last_update) % (self.green_time + self.red_time) <= self.green_time
+        if (time >= self.time_last_update
+            and self._future_green_time != self.green_time
+            and self._future_red_time != self.red_time):
+
+            self.green_time = self._future_green_time
+            self.red_time = self._future_red_time
+
+        return (time - self.time_last_update) % (self.green_time + self.red_time) < self.green_time
 
 
 class Junction(Node):
