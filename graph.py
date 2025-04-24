@@ -110,7 +110,7 @@ class Junction(Node):
     bandwidth: int
     out_stoplight: StopLight | None
     stoplights: dict[int, StopLight]
-    pairs: list[tuple[int, int]]
+    dependencies: dict[int, list[int]]
 
     def __init__(
         self,
@@ -118,7 +118,7 @@ class Junction(Node):
         bandwidth: int,
         out_stoplight: tuple[int],
         stoplights: dict[int, tuple[int]],
-        pairs: list[tuple[int, int]]
+        dependencies: dict[int, list[int]]
     ) -> None:
 
         super().__init__(idx)
@@ -128,7 +128,7 @@ class Junction(Node):
             node_idx: StopLight(*args)
             for node_idx, args in stoplights.items()
         }
-        self.pairs = pairs
+        self.dependencies = dependencies
 
 
 class Car:
