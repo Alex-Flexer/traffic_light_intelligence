@@ -37,7 +37,7 @@ cars_nodes: dict[int, list[Car]] = {idx: [] for idx in range(len(graph.nodes))}
 time = timedelta(hours=7)
 delta = timedelta(seconds=30)
 mod = timedelta(days=1)
-
+    
 
 def distribute_cars(locality: Locality, cars: list[Car]):
     for car in cars:
