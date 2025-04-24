@@ -95,15 +95,17 @@ class Locality(Node):
 
 
 class StopLight:
-    green_time: int
-    red_time: int
+    green_time: timedelta
+    red_time: timedelta
+    time_last_update: timedelta
 
     def __init__(self, green_time: int, red_time: int) -> None:
+        self.time_last_update = timedelta()
         self.green_time = timedelta(seconds=green_time)
         self.red_time = timedelta(seconds=red_time)
 
     def is_green(self, time: timedelta) -> bool:
-        return time % (self.green_time + self.red_time) <= self.green_time
+        return (time - self.time_last_update) % (self.green_time + self.red_time) <= self.green_time
 
 
 class Junction(Node):
