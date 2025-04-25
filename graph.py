@@ -144,7 +144,7 @@ class Junction(Node):
         bandwidth: int,
         out_stoplight: tuple[int],
         stoplights: dict[int, tuple[int]],
-        dependencies: dict[int, list[int]]
+        dependencies: dict[int, list[int]] = []
     ) -> None:
 
         super().__init__(idx)
