@@ -103,8 +103,11 @@ class StopLight:
 
     time_last_update: timedelta
 
+    initial_light: bool | None  # True - green | False - red
+
     def __init__(self, green_time: int, red_time: int) -> None:
         self.time_last_update = timedelta(days=100000)
+        self.initial_light = None
 
         self.green_time = timedelta(seconds=green_time)
         self.red_time = timedelta(seconds=red_time)
@@ -118,13 +121,14 @@ class StopLight:
         self._future_green_time = timedelta(seconds=new_green_time)
         self._future_red_time = timedelta(seconds=new_red_time)
 
-        self.time_last_update = timedelta(seconds=(time.seconds + full_cycle) // full_cycle * full_cycle)
+        self.time_last_update = timedelta(
+            seconds=(time.seconds + full_cycle) // full_cycle * full_cycle)
         # print((time + full_cycle).seconds, type(full_cycle))
 
     def is_green(self, time: timedelta) -> bool:
         if (time >= self.time_last_update
             and self._future_green_time != self.green_time
-            and self._future_red_time != self.red_time):
+                and self._future_red_time != self.red_time):
 
             self.green_time = self._future_green_time
             self.red_time = self._future_red_time
@@ -137,6 +141,22 @@ class Junction(Node):
     out_stoplight: StopLight | None
     stoplights: dict[int, StopLight]
     dependencies: dict[int, list[int]]
+
+    def _set_initial_lights(self, adjacent_node_idx: int, initial_light: bool) -> None:
+        cur_stoplight = self.stoplights[adjacent_node_idx]
+        cur_stoplight.initial_light = initial_light
+
+        if adjacent_node_idx not in self.dependencies:
+            return
+
+        for opposite_node_idx in self.dependencies[adjacent_node_idx]:
+            opposite_stoplight = self.stoplights[opposite_node_idx]
+
+            if opposite_stoplight.initial_light is None:
+                self._set_initial_lights(opposite_node_idx, not initial_light)
+
+            if opposite_stoplight.initial_light == cur_stoplight.initial_light:
+                raise ValueError(f"Impossible to follow dependencies:\nStoplights {adjacent_node_idx} and {opposite_node_idx} intersect")
 
     def __init__(
         self,
@@ -155,6 +175,8 @@ class Junction(Node):
             for node_idx, args in stoplights.items()
         }
         self.dependencies = dependencies
+        if self.dependencies and self.stoplights:
+            self._set_initial_lights(list(self.stoplights.keys())[0], True)
 
 
 class Car:
