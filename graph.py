@@ -1,8 +1,14 @@
 from __future__ import annotations
 from typing import Generator, Iterable
 from datetime import timedelta
+from random import randint
+from math import gcd
+
 
 from numpy.random import choice
+
+
+DEFAULT_TIME_LAST_UPDATE = timedelta(days=10000007)
 
 
 class Edge:
@@ -106,7 +112,7 @@ class StopLight:
     initial_light: bool | None  # True - green | False - red
 
     def __init__(self, green_time: int, red_time: int) -> None:
-        self.time_last_update = timedelta(days=100000)
+        self.time_last_update = DEFAULT_TIME_LAST_UPDATE
         self.initial_light = None
 
         self.green_time = timedelta(seconds=green_time)
@@ -114,6 +120,35 @@ class StopLight:
 
         self._future_green_time = timedelta()
         self._future_red_time = timedelta()
+
+    def is_compatible(self, other: StopLight) -> bool:
+        T1 = (self.red_time + self.green_time).seconds
+        T2 = (other.red_time + other.green_time).seconds
+
+        d = gcd(T1, T2)
+
+        if d > self.green_time.seconds + other.green_time.seconds:
+            return True
+
+        max_checks = (T1 * T2) // d
+
+        for k in range(0, max_checks + 1):
+            t1_start = k * T1
+            t1_end = t1_start + self.green_time.seconds
+
+            m = (t1_start - other.red_time.seconds) // T2
+            for delta in [-1, 0, 1]:
+                current_m = m + delta
+                if current_m < 0:
+                    continue
+
+                t2_start = current_m * T2 + other.red_time.seconds
+                t2_end = t2_start + other.green_time.seconds
+
+                if not (t1_end <= t2_start or t2_end <= t1_start):
+                    return False
+
+        return True
 
     def update_times(self, time: timedelta, new_green_time: int, new_red_time: int):
         full_cycle = (self.green_time + self.red_time).seconds
@@ -123,7 +158,6 @@ class StopLight:
 
         self.time_last_update = timedelta(
             seconds=(time.seconds + full_cycle) // full_cycle * full_cycle)
-        # print((time + full_cycle).seconds, type(full_cycle))
 
     def is_green(self, time: timedelta) -> bool:
         if (time >= self.time_last_update
@@ -133,7 +167,13 @@ class StopLight:
             self.green_time = self._future_green_time
             self.red_time = self._future_red_time
 
-        return (time - self.time_last_update) % (self.green_time + self.red_time) < self.green_time
+        if self.time_last_update != DEFAULT_TIME_LAST_UPDATE:
+            time -= self.time_last_update
+
+        mod = time % (self.green_time + self.red_time)
+        if self.initial_light:
+            return mod < self.green_time
+        return mod >= self.red_time
 
 
 class Junction(Node):
@@ -155,8 +195,13 @@ class Junction(Node):
             if opposite_stoplight.initial_light is None:
                 self._set_initial_lights(opposite_node_idx, not initial_light)
 
+            if not cur_stoplight.is_compatible(opposite_stoplight):
+                raise ValueError(
+                    f"Stoplight from {adjacent_node_idx} to {opposite_node_idx} is not compatible")
+
             if opposite_stoplight.initial_light == cur_stoplight.initial_light:
-                raise ValueError(f"Impossible to follow dependencies:\nStoplights {adjacent_node_idx} and {opposite_node_idx} intersect")
+                raise ValueError(
+                    f"Impossible to follow dependencies:\nStoplights {adjacent_node_idx} and {opposite_node_idx} intersect")
 
     def __init__(
         self,
@@ -177,6 +222,22 @@ class Junction(Node):
         self.dependencies = dependencies
         if self.dependencies and self.stoplights:
             self._set_initial_lights(list(self.stoplights.keys())[0], True)
+
+        for stoplight in self.stoplights.values():
+            if stoplight.initial_light is None:
+                stoplight.initial_light = randint(0, 1) == 1
+
+    def update_stoplight_times(self, adjacent_node_idx: int, new_green_time: int, new_red_time: int) -> None:
+        stoplight = self.stoplights[adjacent_node_idx]
+
+        for opposite_node_idx in self.dependencies[adjacent_node_idx]:
+            opposite_stoplight = self.stoplights[opposite_node_idx]
+
+            if not stoplight.is_compatible(opposite_stoplight):
+                raise ValueError(
+                    f"New stoplight {adjacent_node_idx} is not compatible with the stoplight to {opposite_node_idx}")
+
+        self.stoplights[adjacent_node_idx].update_times(new_green_time, new_red_time)
 
 
 class Car:
