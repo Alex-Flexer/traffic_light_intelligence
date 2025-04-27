@@ -8,6 +8,7 @@ from graph import Graph, Locality, CarsFactory, Car, Edge, Junction, Node
 from normal_distribution import get_leaving_citizens_factor, get_leaving_guests_factor
 from shortest_path import find_path
 from visualization import show
+from optimizer import optimize_graph
 
 
 def load_graph() -> Graph:
@@ -160,6 +161,8 @@ def main():
 
         show(graph, time)
         sleep(0.05)
+
+        optimize_graph(graph)
 
         time = (time + delta) % mod
 
