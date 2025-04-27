@@ -113,12 +113,12 @@ class StopLight:
         self._future_red_time = timedelta()
 
     def update_times(self, time: timedelta, new_green_time: int, new_red_time: int):
-        full_cycle = self.green_time + self.red_time
+        full_cycle = (self.green_time + self.red_time).seconds
 
         self._future_green_time = timedelta(seconds=new_green_time)
         self._future_red_time = timedelta(seconds=new_red_time)
 
-        self.time_last_update = timedelta(seconds=(time + full_cycle).seconds // (full_cycle).seconds * full_cycle.seconds)
+        self.time_last_update = timedelta(seconds=(time.seconds + full_cycle) // full_cycle * full_cycle)
         # print((time + full_cycle).seconds, type(full_cycle))
 
     def is_green(self, time: timedelta) -> bool:
