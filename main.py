@@ -35,6 +35,9 @@ cars_factory = CarsFactory(graph)
 cars_edges: dict[Edge, list[Car]] = {edge: [] for edge in graph.edges}
 cars_nodes: dict[int, list[Car]] = {idx: [] for idx in range(len(graph.nodes))}
 
+accumulator_leaving_native_cars = 0
+accumulator_leaving_guest_cars = 0
+
 time = timedelta(hours=7)
 delta = timedelta(seconds=30)
 mod = timedelta(days=1)
@@ -65,6 +68,11 @@ def distribute_cars(locality: Locality, cars: list[Car]):
 
 
 def generate_cars():
+    global accumulator_leaving_guest_cars, accumulator_leaving_native_cars
+
+    leaving_citizens_factor = get_leaving_citizens_factor(time, delta)
+    leaving_guests_factor = get_leaving_guests_factor(time, delta)
+
     for node in graph:
         if not isinstance(node, Locality):
             continue
@@ -72,15 +80,23 @@ def generate_cars():
         locality: Locality = node
 
         all_leaving_native_cars = locality.population * locality.emigration_factor
-        cur_leaving_native_cars = round(all_leaving_native_cars * get_leaving_citizens_factor(time))
+        accumulator_leaving_native_cars += all_leaving_native_cars * leaving_citizens_factor
+        cur_leaving_native_cars = int(accumulator_leaving_native_cars)
+        accumulator_leaving_native_cars -= cur_leaving_native_cars
 
         guest_cars = cars_nodes[locality.idx]
 
         all_leaving_guest_cars = len(guest_cars)
-        cur_leaving_guest_cars = round(all_leaving_guest_cars * get_leaving_guests_factor(time))
+        accumulator_leaving_guest_cars += all_leaving_guest_cars * leaving_guests_factor
+        cur_leaving_guest_cars = int(accumulator_leaving_guest_cars)
+        accumulator_leaving_guest_cars -= cur_leaving_guest_cars
 
-        for car in guest_cars[:cur_leaving_guest_cars]:
-            car.cur_path = find_path(graph, car.cur_node_idx, car.from_node_idx)
+        try:
+            for car in guest_cars[:cur_leaving_guest_cars]:
+                car.cur_path = find_path(graph, car.cur_node_idx, car.from_node_idx)
+        except TypeError as e:
+            print(type(cur_leaving_guest_cars), cur_leaving_guest_cars)
+            raise e
 
         distribute_cars(
             node,
