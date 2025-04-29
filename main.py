@@ -9,6 +9,7 @@ from normal_distribution import get_leaving_citizens_factor, get_leaving_guests_
 from shortest_path import find_path
 from visualization import show
 from optimizer import optimize_graph
+from tools import calc_road_time
 
 
 def load_graph() -> Graph:
@@ -56,10 +57,10 @@ def distribute_cars(locality: Locality, cars: list[Car]):
             if car in cars_nodes[locality.idx]:
                 cars_nodes[locality.idx].remove(car)
 
+            car.previous_node = locality
             car.cur_edge = road
+            car.time_entry_to_road = time
             car.cur_node_idx = None
-
-            car.cur_path.pop(0)
 
             if road not in cars_edges:
                 cars_edges[road] = []
@@ -91,22 +92,18 @@ def generate_cars():
         cur_leaving_guest_cars = int(accumulator_leaving_guest_cars)
         accumulator_leaving_guest_cars -= cur_leaving_guest_cars
 
-        try:
-            for car in guest_cars[:cur_leaving_guest_cars]:
-                car.cur_path = find_path(graph, car.cur_node_idx, car.from_node_idx)
-        except TypeError as e:
-            print(type(cur_leaving_guest_cars), cur_leaving_guest_cars)
-            raise e
+        for car in guest_cars[:cur_leaving_guest_cars]:
+            car.cur_path = find_path(graph, car.cur_node_idx, car.from_node_idx)
 
         distribute_cars(
-            node,
+            locality,
             cars_factory.generate_cars(
                 locality.idx,
                 cur_leaving_native_cars
             )
         )
 
-        distribute_cars(node, guest_cars[:cur_leaving_guest_cars])
+        distribute_cars(locality, guest_cars[:cur_leaving_guest_cars])
 
 
 def cars_driving():
@@ -114,52 +111,58 @@ def cars_driving():
         cars_to_remove = []
 
         for car in cars_stream:
-            if not car.cur_path:
-                raise ValueError("Car's path became empty before reaching destination node.")
+            from_node = car.previous_node
+            to_node = car.cur_path[0]
 
-            next_node: Node = car.cur_path[0]
+            time_reaching_node =\
+                car.time_entry_to_road + timedelta(
+                    seconds=round(calc_road_time(from_node, to_node))
+                )
+
+            if time < time_reaching_node:
+                continue
+
+            cur_node = car.cur_path[0]
 
             if len(car.cur_path) == 1:
                 edge.update_cars(edge.cars - 1)
                 cars_to_remove.append(car)
 
-                if car.cur_path[0] == car.dest_node_idx:
-                    car.cur_path.pop(0)
-                    car.cur_edge = None
-                    car.cur_node_idx = next_node.idx
-                    cars_nodes[next_node.idx].append(car)
-                else:
+                car.previous_node = None
+                car.cur_edge = None
+                car.cur_node_idx = cur_node.idx
+                cars_nodes[cur_node.idx].append(car)
+
+                if cur_node.idx == car.from_node_idx:
                     del car
+
                 continue
 
-            if isinstance(next_node, Junction):
-                next_node: Junction = next_node
+            next_node: Node = car.cur_path[1]
 
-                if not next_node.out_stoplight.is_green(time):
+            if isinstance(cur_node, Junction):
+                if not cur_node.out_stoplight.is_green(time):
                     continue
 
-                stoplight = next_node.stoplights.get(car.cur_path[1].idx)
+                stoplight = cur_node.stoplights.get(next_node.idx)
+
                 if stoplight is not None and not stoplight.is_green(time):
                     continue
-            else:
-                next_node: Locality = next_node
 
-            next_road = next_node.output_roads.get(car.cur_path[1].idx)
+            next_road = cur_node.output_roads.get(next_node.idx)
 
             if next_road.update_cars((next_road_cars := next_road.cars) + 1) > next_road_cars:
                 edge.update_cars(edge.cars - 1)
                 car.cur_edge = next_road
+                car.time_entry_to_road = time
+                car.previous_node = cur_node
                 car.cur_path.pop(0)
-
-                if next_road not in cars_edges:
-                    cars_edges[next_road] = []
 
                 cars_edges[next_road].append(car)
                 cars_to_remove.append(car)
 
         for car in cars_to_remove:
             cars_stream.remove(car)
-        cars_to_remove.clear()
 
 
 def main():

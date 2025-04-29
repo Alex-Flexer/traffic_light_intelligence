@@ -246,13 +246,17 @@ class Car:
     cur_node_idx: int | None
     cur_edge: Edge | None
     cur_path: list[Node]
+    time_entry_to_road: timedelta | None
+    previous_node: Node | None
 
     def __init__(self, from_node: int, dest_node: int, path: list[Node] = []):
         self.from_node_idx = from_node
         self.dest_node_idx = dest_node
         self.cur_node_idx = from_node
         self.cur_edge: Edge | None = None
-        self.cur_path = path
+        self.cur_path: list[Node] = path
+        self.time_entry_to_road: timedelta | None = None
+        self.previous_node = None
 
 
 class Graph:
