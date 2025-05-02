@@ -359,11 +359,8 @@ class CarsFactory:
         from pathfinder import find_path
 
         idxs, factors = zip(*self._popularity_factors)
-        res = []
-
+        
         for _ in range(amount):
             chosen_idx = choice(idxs, p=factors)
             path = find_path(self._graph, node_idx, chosen_idx)
-            res.append(Car(node_idx, chosen_idx, path))
-
-        return res
+            yield Car(node_idx, chosen_idx, path)
