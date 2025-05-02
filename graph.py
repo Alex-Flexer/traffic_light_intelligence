@@ -1,3 +1,5 @@
+"""Graph classes"""
+
 from __future__ import annotations
 from typing import Generator, Iterable
 from datetime import timedelta
@@ -227,17 +229,31 @@ class Junction(Node):
             if stoplight.initial_light is None:
                 stoplight.initial_light = randint(0, 1) == 1
 
-    def update_stoplight_times(self, adjacent_node_idx: int, new_green_time: int, new_red_time: int) -> None:
-        stoplight = self.stoplights[adjacent_node_idx]
+    def update_stoplight_times(
+        self,
+        time: timedelta,
+        new_green_time: int,
+        new_red_time: int,
+        adjacent_node_idx: int | None = None
+    ) -> None:
+        """
+        If optional argument adjacent_node_idx is None, time will be updated on the out_stoplight,
+        Otherwise time will be updated on the stoplight between nodes self.idx and adjacent_node_idx.
+        """
+        if adjacent_node_idx is None:
+            self.out_stoplight.update_times(time, new_green_time, new_red_time)
+            return
+
+        tmp_stoplight = StopLight(new_green_time, new_red_time)
 
         for opposite_node_idx in self.dependencies[adjacent_node_idx]:
             opposite_stoplight = self.stoplights[opposite_node_idx]
 
-            if not stoplight.is_compatible(opposite_stoplight):
+            if not tmp_stoplight.is_compatible(opposite_stoplight):
                 raise ValueError(
                     f"New stoplight {adjacent_node_idx} is not compatible with the stoplight to {opposite_node_idx}")
 
-        self.stoplights[adjacent_node_idx].update_times(new_green_time, new_red_time)
+        self.stoplights[adjacent_node_idx].update_times(time, new_green_time, new_red_time)
 
 
 class Car:
@@ -340,7 +356,7 @@ class CarsFactory:
         )
 
     def generate_cars(self, node_idx: int, amount: int) -> Generator[Car, None, None]:
-        from shortest_path import find_path
+        from pathfinder import find_path
 
         idxs, factors = zip(*self._popularity_factors)
         res = []
