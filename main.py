@@ -5,8 +5,8 @@ from datetime import timedelta
 import matplotlib.pyplot as plt
 
 from graph import Graph, Locality, CarsFactory, Car, Edge, Junction, Node
-from normal_distribution import get_leaving_citizens_factor, get_leaving_guests_factor
-from shortest_path import find_path
+from distributor import get_leaving_citizens_factor, get_leaving_guests_factor
+from pathfinder import find_path
 from visualization import show
 from optimizer import optimize_graph
 from tools import calc_road_time
