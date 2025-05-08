@@ -40,7 +40,7 @@ accumulator_leaving_native_cars = 0
 accumulator_leaving_guest_cars = 0
 
 time = timedelta(hours=7)
-delta = timedelta(seconds=30)
+delta = timedelta(seconds=3)
 mod = timedelta(days=1)
 
 
@@ -59,7 +59,7 @@ def distribute_cars(locality: Locality, cars: list[Car]):
 
             car.previous_node = locality
             car.cur_edge = road
-            car.time_entry_to_road = time
+            car.time_reaching_node = time + timedelta(seconds=round(calc_road_time(locality, nearest_node)))
             car.cur_node_idx = None
 
             if road not in cars_edges:
@@ -69,7 +69,7 @@ def distribute_cars(locality: Locality, cars: list[Car]):
 
 
 def generate_cars():
-    global accumulator_leaving_guest_cars, accumulator_leaving_native_cars
+    global accumulator_leaving_guest_cars, accumulator_leaving_native_cars, time
 
     leaving_citizens_factor = get_leaving_citizens_factor(time, delta)
     leaving_guests_factor = get_leaving_guests_factor(time, delta)
@@ -95,12 +95,14 @@ def generate_cars():
         for car in guest_cars[:cur_leaving_guest_cars]:
             car.cur_path = find_path(graph, car.cur_node_idx, car.from_node_idx)
 
-        distribute_cars(
-            locality,
-            cars_factory.generate_cars(
+        leaving_citizens_cars = cars_factory.generate_cars(
                 locality.idx,
                 cur_leaving_native_cars
             )
+
+        distribute_cars(
+            locality,
+            leaving_citizens_cars
         )
 
         distribute_cars(locality, guest_cars[:cur_leaving_guest_cars])
@@ -114,27 +116,27 @@ def cars_driving():
             from_node = car.previous_node
             to_node = car.cur_path[0]
 
-            time_reaching_node =\
-                car.time_entry_to_road + timedelta(
-                    seconds=round(calc_road_time(from_node, to_node))
-                )
-
-            if time < time_reaching_node:
+            if time > car.time_reaching_node:
+                # if from_node.idx == 2 and to_node.idx == 6:
+                # print(f"{from_node.idx} -> {to_node.idx}: {time - car.time_reaching_node}")
                 continue
 
             cur_node = car.cur_path[0]
 
             if len(car.cur_path) == 1:
+                print(f"Car from {from_node.idx} to {to_node.idx} reached destination")
+                car.cur_path.pop(0)
                 edge.update_cars(edge.cars - 1)
                 cars_to_remove.append(car)
 
                 car.previous_node = None
                 car.cur_edge = None
                 car.cur_node_idx = cur_node.idx
-                cars_nodes[cur_node.idx].append(car)
 
                 if cur_node.idx == car.from_node_idx:
                     del car
+                else:
+                    cars_nodes[cur_node.idx].append(car)
 
                 continue
 
@@ -142,10 +144,15 @@ def cars_driving():
 
             if isinstance(cur_node, Junction):
                 if not cur_node.out_stoplight.is_green(time):
+                    print("R" * 10)
                     continue
+                else:
+                    print("G" * 10)
 
                 stoplight = cur_node.stoplights.get(next_node.idx)
 
+                if stoplight is not None:
+                    print(f"Stoplight from {cur_node.idx} to {next_node.idx} is {"GREEN" if stoplight.is_green(time) else "RED"}")
                 if stoplight is not None and not stoplight.is_green(time):
                     continue
 
@@ -154,7 +161,7 @@ def cars_driving():
             if next_road.update_cars((next_road_cars := next_road.cars) + 1) > next_road_cars:
                 edge.update_cars(edge.cars - 1)
                 car.cur_edge = next_road
-                car.time_entry_to_road = time
+                car.time_reaching_node = time + timedelta(seconds=round(calc_road_time(cur_node, next_node)))
                 car.previous_node = cur_node
                 car.cur_path.pop(0)
 
@@ -174,14 +181,14 @@ def main():
         generate_cars()
 
         show(graph, time)
-        sleep(0.05)
+        # sleep(0.05)
 
         cars_driving()
 
         show(graph, time)
-        sleep(0.05)
+        # sleep(0.05)
 
-        optimize_graph(graph)
+        # optimize_graph(graph)
 
         time = (time + delta) % mod
 

@@ -246,12 +246,13 @@ class Junction(Node):
 
         tmp_stoplight = StopLight(new_green_time, new_red_time)
 
-        for opposite_node_idx in self.dependencies[adjacent_node_idx]:
-            opposite_stoplight = self.stoplights[opposite_node_idx]
+        if adjacent_node_idx in self.dependencies:
+            for opposite_node_idx in self.dependencies[adjacent_node_idx]:
+                opposite_stoplight = self.stoplights[opposite_node_idx]
 
-            if not tmp_stoplight.is_compatible(opposite_stoplight):
-                raise ValueError(
-                    f"New stoplight {adjacent_node_idx} is not compatible with the stoplight to {opposite_node_idx}")
+                if not tmp_stoplight.is_compatible(opposite_stoplight):
+                    raise ValueError(
+                        f"New stoplight {adjacent_node_idx} is not compatible with the stoplight to {opposite_node_idx}")
 
         self.stoplights[adjacent_node_idx].update_times(time, new_green_time, new_red_time)
 
@@ -262,7 +263,7 @@ class Car:
     cur_node_idx: int | None
     cur_edge: Edge | None
     cur_path: list[Node]
-    time_entry_to_road: timedelta | None
+    time_reaching_node: timedelta | None
     previous_node: Node | None
 
     def __init__(self, from_node: int, dest_node: int, path: list[Node] = []):
@@ -271,7 +272,7 @@ class Car:
         self.cur_node_idx = from_node
         self.cur_edge: Edge | None = None
         self.cur_path: list[Node] = path
-        self.time_entry_to_road: timedelta | None = None
+        self.time_reaching_node: timedelta | None = None
         self.previous_node = None
 
 
