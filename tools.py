@@ -20,7 +20,7 @@ def calc_bandwidth_road_factor(workload: float) -> float:
 
 
 def calc_avg_speed(edge: Edge) -> float:
-    a = 1 # calc_bandwidth_road_factor(edge.workload)
+    a = calc_bandwidth_road_factor(edge.workload)
     return a * edge.speed_limit
 
 

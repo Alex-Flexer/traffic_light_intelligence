@@ -117,14 +117,11 @@ def cars_driving():
             to_node = car.cur_path[0]
 
             if time > car.time_reaching_node:
-                # if from_node.idx == 2 and to_node.idx == 6:
-                # print(f"{from_node.idx} -> {to_node.idx}: {time - car.time_reaching_node}")
                 continue
 
             cur_node = car.cur_path[0]
 
             if len(car.cur_path) == 1:
-                print(f"Car from {from_node.idx} to {to_node.idx} reached destination")
                 car.cur_path.pop(0)
                 edge.update_cars(edge.cars - 1)
                 cars_to_remove.append(car)
@@ -144,15 +141,10 @@ def cars_driving():
 
             if isinstance(cur_node, Junction):
                 if not cur_node.out_stoplight.is_green(time):
-                    print("R" * 10)
                     continue
-                else:
-                    print("G" * 10)
 
                 stoplight = cur_node.stoplights.get(next_node.idx)
 
-                if stoplight is not None:
-                    print(f"Stoplight from {cur_node.idx} to {next_node.idx} is {"GREEN" if stoplight.is_green(time) else "RED"}")
                 if stoplight is not None and not stoplight.is_green(time):
                     continue
 
