@@ -10,6 +10,7 @@ from pathfinder import find_path
 from visualization import show
 from optimizer import optimize_graph
 from tools import calc_road_time
+from meter import avg_work_load
 
 
 def load_graph() -> Graph:
@@ -39,9 +40,15 @@ cars_nodes: dict[int, list[Car]] = {idx: [] for idx in range(len(graph.nodes))}
 accumulator_leaving_native_cars = 0
 accumulator_leaving_guest_cars = 0
 
-time = timedelta(hours=7)
-delta = timedelta(seconds=3)
-mod = timedelta(days=1)
+time = timedelta(hours=7, minutes=55)
+DELTA = timedelta(seconds=3)
+MOD = timedelta(days=1)
+HOUR_BORDER = timedelta(hours=1)
+
+
+def check_hour_border() -> bool:
+    global time
+    return time // HOUR_BORDER < (time + DELTA) // HOUR_BORDER
 
 
 def distribute_cars(locality: Locality, cars: list[Car]):
@@ -68,8 +75,8 @@ def distribute_cars(locality: Locality, cars: list[Car]):
 def generate_cars():
     global accumulator_leaving_guest_cars, accumulator_leaving_native_cars, time
 
-    leaving_citizens_factor = get_leaving_citizens_factor(time, delta)
-    leaving_guests_factor = get_leaving_guests_factor(time, delta)
+    leaving_citizens_factor = get_leaving_citizens_factor(time, DELTA)
+    leaving_guests_factor = get_leaving_guests_factor(time, DELTA)
 
     for node in graph:
         if not isinstance(node, Locality):
@@ -113,7 +120,6 @@ def cars_driving():
         for car in cars_stream:
             cur_node = car.cur_path[0]
             if isinstance(cur_node, Junction) and number_passed_cars >= cur_node.bandwidth:
-                print(f"{cur_node.idx}: BANDWIDTH LIMITED")
                 break
 
             if time < car.time_reaching_node:
@@ -179,9 +185,13 @@ def main():
         show(graph, time)
         # sleep(0.05)
 
-        # optimize_graph(graph)
+        optimize_graph(graph)
 
-        time = (time + delta) % mod
+        if check_hour_border():
+            print(avg_work_load(graph))
+            
+
+        time = (time + DELTA) % MOD
 
     plt.ioff()
     plt.show()
