@@ -62,9 +62,6 @@ def distribute_cars(locality: Locality, cars: list[Car]):
             car.time_reaching_node = time + timedelta(seconds=round(calc_road_time(locality, nearest_node)))
             car.cur_node_idx = None
 
-            if road not in cars_edges:
-                cars_edges[road] = []
-
             cars_edges[road].append(car)
 
 
@@ -111,15 +108,16 @@ def generate_cars():
 def cars_driving():
     for edge, cars_stream in cars_edges.items():
         cars_to_remove = []
+        number_passed_cars = 0
 
         for car in cars_stream:
-            from_node = car.previous_node
-            to_node = car.cur_path[0]
-
-            if time > car.time_reaching_node:
-                continue
-
             cur_node = car.cur_path[0]
+            if isinstance(cur_node, Junction) and number_passed_cars >= cur_node.bandwidth:
+                print(f"{cur_node.idx}: BANDWIDTH LIMITED")
+                break
+
+            if time < car.time_reaching_node:
+                continue
 
             if len(car.cur_path) == 1:
                 car.cur_path.pop(0)
@@ -147,7 +145,8 @@ def cars_driving():
 
                 if stoplight is not None and not stoplight.is_green(time):
                     continue
-
+            
+            number_passed_cars += 1
             next_road = cur_node.output_roads.get(next_node.idx)
 
             if next_road.update_cars((next_road_cars := next_road.cars) + 1) > next_road_cars:
