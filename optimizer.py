@@ -1,4 +1,4 @@
-from graph import Graph, Locality, Node, Junction
+from graph import Graph, Locality, Node, Junction, StopLight
 import math
 from collections import deque
 from collections.abc import MutableSequence
@@ -50,6 +50,7 @@ def optimize_graph(graph: Graph) -> None:
 
         for node_idx, stoplight in stoplights.items():
             if node_idx not in weights:
+                print(node_idx)
                 continue
 
             current_cycle = stoplight.green_time.seconds + stoplight.red_time.seconds
@@ -62,6 +63,10 @@ def optimize_graph(graph: Graph) -> None:
 
             r_new = find_non_overlapping_red_time(stoplight, g_new, ideal_red)
 
+            if node_idx == 5:
+                print(stoplight.green_time, stoplight.red_time)
+                print(g_new, ideal_red, r_new)
+
             if r_new:
                 current_node.update_stoplight_times(
                     stoplight.time_last_update,
@@ -71,27 +76,28 @@ def optimize_graph(graph: Graph) -> None:
                 )
 
 
-def find_non_overlapping_red_time(tl1, G2, ideal_red) -> int | None:
-    G1 = tl1.green_time.seconds
-    R1 = tl1.red_time.seconds
-    T1 = G1 + R1
+def find_non_overlapping_red_time(stoplight: StopLight, g_new: int, ideal_red: int) -> int | None:
+    min_red = ideal_red * 0.85
+    max_red = ideal_red * 1.15
 
-    prev_r2 = None
+    temp_stoplight = StopLight(g_new, ideal_red)
+    temp_stoplight.initial_light = stoplight.initial_light
 
-    if T1 == 0:
-        return None
+    if temp_stoplight.is_compatible(stoplight):
+        return ideal_red
 
-    k_min = math.floor(G2 / T1) + 1
-    k_max = k_min + T1
+    best_red = None
+    min_diff = float('inf')
 
-    for k in range(k_min, k_max + 1):
-        candidate_r2 = k * T1 - G2
-        if ideal_red <= candidate_r2:
-            if prev_r2 is None:
-                return candidate_r2
-            else:
-                return prev_r2 if abs(ideal_red - prev_r2) < abs(ideal_red - candidate_r2) else candidate_r2
-        else:
-            prev_r2 = candidate_r2
+    for red in range(int(min_red), int(max_red) + 1):
+        temp_stoplight = StopLight(g_new, red)
+        temp_stoplight.initial_light = stoplight.initial_light
 
-    return prev_r2 if prev_r2 > 0 else None
+        if temp_stoplight.is_compatible(stoplight):
+            diff = abs(red - ideal_red)
+
+            if diff < min_diff:
+                min_diff = diff
+                best_red = red
+
+    return best_red
