@@ -10,6 +10,7 @@ from pathfinder import find_path
 from visualization import show
 from optimizer import optimize_graph
 from tools import calc_road_time
+from meter import avg_work_load
 
 
 def load_graph() -> Graph:
@@ -39,9 +40,15 @@ cars_nodes: dict[int, list[Car]] = {idx: [] for idx in range(len(graph.nodes))}
 accumulator_leaving_native_cars = 0
 accumulator_leaving_guest_cars = 0
 
-time = timedelta(hours=7)
-delta = timedelta(seconds=3)
-mod = timedelta(days=1)
+time = timedelta(hours=7, minutes=55)
+DELTA = timedelta(seconds=3)
+MOD = timedelta(days=1)
+HOUR_BORDER = timedelta(hours=1)
+
+
+def check_hour_border() -> bool:
+    global time
+    return time // HOUR_BORDER < (time + DELTA) // HOUR_BORDER
 
 
 def distribute_cars(locality: Locality, cars: list[Car]):
@@ -62,17 +69,14 @@ def distribute_cars(locality: Locality, cars: list[Car]):
             car.time_reaching_node = time + timedelta(seconds=round(calc_road_time(locality, nearest_node)))
             car.cur_node_idx = None
 
-            if road not in cars_edges:
-                cars_edges[road] = []
-
             cars_edges[road].append(car)
 
 
 def generate_cars():
     global accumulator_leaving_guest_cars, accumulator_leaving_native_cars, time
 
-    leaving_citizens_factor = get_leaving_citizens_factor(time, delta)
-    leaving_guests_factor = get_leaving_guests_factor(time, delta)
+    leaving_citizens_factor = get_leaving_citizens_factor(time, DELTA)
+    leaving_guests_factor = get_leaving_guests_factor(time, DELTA)
 
     for node in graph:
         if not isinstance(node, Locality):
@@ -111,20 +115,17 @@ def generate_cars():
 def cars_driving():
     for edge, cars_stream in cars_edges.items():
         cars_to_remove = []
+        number_passed_cars = 0
 
         for car in cars_stream:
-            from_node = car.previous_node
-            to_node = car.cur_path[0]
+            cur_node = car.cur_path[0]
+            if isinstance(cur_node, Junction) and number_passed_cars >= cur_node.bandwidth:
+                break
 
-            if time > car.time_reaching_node:
-                # if from_node.idx == 2 and to_node.idx == 6:
-                # print(f"{from_node.idx} -> {to_node.idx}: {time - car.time_reaching_node}")
+            if time < car.time_reaching_node:
                 continue
 
-            cur_node = car.cur_path[0]
-
             if len(car.cur_path) == 1:
-                print(f"Car from {from_node.idx} to {to_node.idx} reached destination")
                 car.cur_path.pop(0)
                 edge.update_cars(edge.cars - 1)
                 cars_to_remove.append(car)
@@ -144,18 +145,14 @@ def cars_driving():
 
             if isinstance(cur_node, Junction):
                 if not cur_node.out_stoplight.is_green(time):
-                    print("R" * 10)
                     continue
-                else:
-                    print("G" * 10)
 
                 stoplight = cur_node.stoplights.get(next_node.idx)
 
-                if stoplight is not None:
-                    print(f"Stoplight from {cur_node.idx} to {next_node.idx} is {"GREEN" if stoplight.is_green(time) else "RED"}")
                 if stoplight is not None and not stoplight.is_green(time):
                     continue
-
+            
+            number_passed_cars += 1
             next_road = cur_node.output_roads.get(next_node.idx)
 
             if next_road.update_cars((next_road_cars := next_road.cars) + 1) > next_road_cars:
@@ -188,9 +185,13 @@ def main():
         show(graph, time)
         # sleep(0.05)
 
-        # optimize_graph(graph)
+        optimize_graph(graph)
 
-        time = (time + delta) % mod
+        if check_hour_border():
+            print(avg_work_load(graph))
+            
+
+        time = (time + DELTA) % MOD
 
     plt.ioff()
     plt.show()
