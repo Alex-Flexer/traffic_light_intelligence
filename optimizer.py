@@ -50,22 +50,30 @@ def optimize_graph(graph: Graph) -> None:
 
         for node_idx, stoplight in stoplights.items():
             if node_idx not in weights:
-                print(node_idx)
                 continue
 
             current_cycle = stoplight.green_time.seconds + stoplight.red_time.seconds
             if len(weights) == 1:
                 g_new = current_cycle
             else:
-                g_new = current_cycle * weights[node_idx] // total_weight
+                g_new = int(current_cycle * (1 - weights[node_idx] / total_weight))
+                # if current_node.idx == 5 and node_idx == 6:
+                #     print(current_cycle, weights[node_idx], total_weight, g_new)
 
             ideal_red = current_cycle - g_new
 
             r_new = find_non_overlapping_red_time(stoplight, g_new, ideal_red)
+            if r_new is None:
+                for g_new_tmp in range(g_new // 5, 0, -1):
+                    r_new = find_non_overlapping_red_time(stoplight, g_new_tmp, ideal_red)
 
-            if node_idx == 5:
-                print(stoplight.green_time, stoplight.red_time)
-                print(g_new, ideal_red, r_new)
+                    if r_new is not None:
+                        g_new = g_new_tmp
+                        break
+
+            # if node_idx == 6 and current_node.idx == 5:
+                # print(stoplight.green_time, stoplight.red_time, sep=";")
+                # print(g_new, ideal_red, r_new)
 
             if r_new:
                 current_node.update_stoplight_times(

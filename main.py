@@ -185,7 +185,7 @@ def main():
         show(graph, time)
         # sleep(0.05)
 
-        optimize_graph(graph)
+        # optimize_graph(graph)
 
         if check_hour_border():
             print(avg_work_load(graph))
