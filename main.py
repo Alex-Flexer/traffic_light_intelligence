@@ -200,7 +200,7 @@ def main():
     args = parser.parse_args()
 
     is_optimized = args.optimized
-    visible = not args.show_plot
+    visible = not args.invisible
     show_data = args.show_data
     save_data = args.save
 
