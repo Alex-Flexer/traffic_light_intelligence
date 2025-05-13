@@ -189,32 +189,34 @@ def cars_driving():
 def main():
     global time
 
-    parser = argparse.ArgumentParser(description='Analyze and plot hourly factor data')
-    parser.add_argument('--optimized', action='store_true', help='Combine all plots in one graph')
-    parser.add_argument('--show-data', action='store_true', help='Combine all plots in one graph')
-    parser.add_argument('--show-plot', action='store_true', help='Combine all plots in one graph')
-    parser.add_argument('--save', action='store_true', help='Combine all plots in one graph')
+    # add arguments for file
+    parser = argparse.ArgumentParser(description='Analyze and plot hourly average workload')
+
+    parser.add_argument('--optimized', action='store_true', help='Turn on optimized mode')
+    parser.add_argument('--show-data', action='store_true', help='Show hourly average workload')
+    parser.add_argument('--invisible', action='store_true', help='Do not show plot')
+    parser.add_argument('--save', action='store_true', help='Save data to statistics files')
 
     args = parser.parse_args()
 
     is_optimized = args.optimized
-    show_plot = args.show_plot
+    visible = not args.show_plot
     show_data = args.show_data
     save_data = args.save
 
     mode = "optimized" if is_optimized else "default"
 
-    if show_plot:
+    if visible:
         plt.ion()
 
     while True:
         generate_cars()
 
-        if show_plot:
+        if visible:
             show(graph, time)
 
         cars_driving()
-        if show_plot:
+        if visible:
             show(graph, time)
 
         if is_optimized:
@@ -235,7 +237,7 @@ def main():
 
         time = (time + DELTA) % MOD
 
-    if show_plot:
+    if visible:
         plt.ioff()
         plt.show()
 

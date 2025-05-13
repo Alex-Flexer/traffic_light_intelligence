@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import networkx as nx
 import matplotlib.pyplot as plt
+from meter import calculate_hourly_averages
 from graph import Graph
 
 HOUR = 3600
@@ -70,3 +71,93 @@ def show(g: Graph, time: timedelta) -> None:
     plt.axis('off')
     plt.pause(0.01)
     plt.show(block=False)
+
+
+def plot_hourly_data(data_sets: list[dict]) -> None:
+    plt.figure(figsize=(12, 6))
+    for dataset in data_sets:
+        plt.plot(
+            range(24),
+            dataset['averages'], 
+            marker='o',
+            linestyle='-', 
+            color=dataset.get('color', None),
+            label=dataset.get('label', 'Unknown')
+        )
+
+    plt.title('Comparison of Hourly Averages')
+    plt.xlabel('Hour of Day')
+    plt.ylabel('Average Workload (×10⁴)')
+    plt.xticks(range(24))
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.xlim(0, 23)
+    plt.legend()
+    plt.show()
+
+
+def get_data_sets(
+        filepaths: list[str],
+        labels: list[str] | None = None,
+        colors: list[str] | None = None
+    ) -> list[dict[str, str | int]]:
+    if labels is None:
+        labels = [f"Dataset {i+1}" for i in range(len(filepaths))]
+
+    if colors is None:
+        colors = [None] * len(filepaths)
+    
+    data_sets = []
+    for filepath, label, color in zip(filepaths, labels, colors):
+        averages = calculate_hourly_averages(filepath)
+        data_sets.append({
+            'averages': averages,
+            'label': label,
+            'color': color
+        })
+
+    return data_sets
+
+
+def analyze_and_plot(
+        filepaths: list[str],
+        labels: list[str] | None = None,
+        colors: list[str] | None = None
+    ) -> None:
+
+    data_sets = get_data_sets(filepaths, labels, colors)
+    plot_hourly_data(data_sets)
+
+
+def calc_diff_on_peak_hours(*args, filepaths: str) -> list[float]:
+    for a in args:
+        if not isinstance(a, int):
+            raise TypeError("Arguments values must be integers")
+        if a > 23 or a < 0:
+            raise ValueError("Arguments values must be between 0 and 23")
+
+    mins = [float("inf")] * 24
+    maxes = [-float("inf")] * 24
+
+    for filepath in filepaths:
+        averages = calculate_hourly_averages(filepath)
+        for idx in args:
+            mins[idx] = min(mins[idx], averages[idx])
+            maxes[idx] = max(maxes[idx], averages[idx])
+    
+    return [round((1 - mins[i] / maxes[i]) * 100, 1) for i in args] 
+
+
+if __name__ == "__main__":
+    print(calc_diff_on_peak_hours(
+        9, 18,
+        filepaths=[
+            'stat\hourly_factors_default.csv',
+            'stat\hourly_factors_optimized.csv']
+        )
+    )
+
+    analyze_and_plot(
+        filepaths=['stat\hourly_factors_default.csv', 'stat\hourly_factors_optimized.csv'],
+        labels=['Default', 'Optimized'],
+        colors=['blue', 'orange']
+    )
