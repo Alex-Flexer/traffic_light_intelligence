@@ -1,6 +1,8 @@
 from json import load
 from time import sleep
 from datetime import timedelta
+import csv
+import argparse
 
 import matplotlib.pyplot as plt
 
@@ -10,7 +12,7 @@ from pathfinder import find_path
 from visualization import show
 from optimizer import optimize_graph
 from tools import calc_road_time
-from meter import avg_work_load
+from meter import calc_avg_workload
 
 
 def load_graph() -> Graph:
@@ -40,15 +42,30 @@ cars_nodes: dict[int, list[Car]] = {idx: [] for idx in range(len(graph.nodes))}
 accumulator_leaving_native_cars = 0
 accumulator_leaving_guest_cars = 0
 
-time = timedelta(hours=7, minutes=55)
 DELTA = timedelta(seconds=3)
 MOD = timedelta(days=1)
 HOUR_BORDER = timedelta(hours=1)
 
+FILEPATH = 'stat\hourly_factors_{mode}.csv'
+
+time = timedelta(days=1) - DELTA
+hourly_stats = []
+
+def save_hourly_factors(factors: list[float], mode: str) -> None:
+    if len(factors) != 24:
+        raise ValueError("Input list must contain exactly 24 elements (one for each hour).")
+    
+    # Open file in append mode, creating it if it doesn't exist
+    with open(FILEPATH.format(mode), 'a', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(factors)
+
 
 def check_hour_border() -> bool:
     global time
-    return time // HOUR_BORDER < (time + DELTA) // HOUR_BORDER
+    a = time // HOUR_BORDER
+    b = (time + DELTA) // HOUR_BORDER
+    return a < b
 
 
 def distribute_cars(locality: Locality, cars: list[Car]):
@@ -172,29 +189,55 @@ def cars_driving():
 def main():
     global time
 
-    plt.ion()
+    parser = argparse.ArgumentParser(description='Analyze and plot hourly factor data')
+    parser.add_argument('--optimized', action='store_true', help='Combine all plots in one graph')
+    parser.add_argument('--show-data', action='store_true', help='Combine all plots in one graph')
+    parser.add_argument('--show-plot', action='store_true', help='Combine all plots in one graph')
+    parser.add_argument('--save', action='store_true', help='Combine all plots in one graph')
+
+    args = parser.parse_args()
+
+    is_optimized = args.optimized
+    show_plot = args.show_plot
+    show_data = args.show_data
+    save_data = args.save
+
+    mode = "optimized" if is_optimized else "default"
+
+    if show_plot:
+        plt.ion()
 
     while True:
         generate_cars()
 
-        show(graph, time)
-        # sleep(0.05)
+        if show_plot:
+            show(graph, time)
 
         cars_driving()
+        if show_plot:
+            show(graph, time)
 
-        show(graph, time)
-        # sleep(0.05)
+        if is_optimized:
+            optimize_graph(graph)
 
-        # optimize_graph(graph)
+        if check_hour_border() and (show_data or save_data):
+            hour = (time + DELTA) % MOD // HOUR_BORDER
+            avg_workload = round(calc_avg_workload(graph) * 1e4, 3)
+            hourly_stats.append(avg_workload)
 
-        if check_hour_border():
-            print(avg_work_load(graph))
-            
+            if show_data:
+                print(f"{hour}: {avg_workload}")
+
+            if save_data and len(hourly_stats) == 24:
+                save_hourly_factors(hourly_stats, mode)
+                print("DATA IS SAVED!")
+                hourly_stats.clear()
 
         time = (time + DELTA) % MOD
 
-    plt.ioff()
-    plt.show()
+    if show_plot:
+        plt.ioff()
+        plt.show()
 
 
 if __name__ == "__main__":

@@ -56,9 +56,9 @@ def optimize_graph(graph: Graph) -> None:
             if len(weights) == 1:
                 g_new = current_cycle
             else:
-                g_new = int(current_cycle * (1 - weights[node_idx] / total_weight))
-                # if current_node.idx == 5 and node_idx == 6:
-                #     print(current_cycle, weights[node_idx], total_weight, g_new)
+                g_new = int(current_cycle * (1 - weights[node_idx] ** 2))
+                if g_new == 0:
+                    pass
 
             ideal_red = current_cycle - g_new
 
@@ -70,10 +70,6 @@ def optimize_graph(graph: Graph) -> None:
                     if r_new is not None:
                         g_new = g_new_tmp
                         break
-
-            # if node_idx == 6 and current_node.idx == 5:
-                # print(stoplight.green_time, stoplight.red_time, sep=";")
-                # print(g_new, ideal_red, r_new)
 
             if r_new:
                 current_node.update_stoplight_times(
