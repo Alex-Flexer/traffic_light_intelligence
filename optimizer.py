@@ -25,10 +25,6 @@ def optimize_graph(graph: Graph) -> None:
                 queue.append(graph[adj_idx])
 
         if isinstance(current_node, Locality):
-            for adj_idx, _ in current_node:
-                if adj_idx not in visited:
-                    visited.add(adj_idx)
-                    queue.append(graph[adj_idx])
             continue
 
         current_node: Junction = current_node
